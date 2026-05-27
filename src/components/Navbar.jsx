@@ -117,6 +117,27 @@ export const Navbar = () => {
                 {link.label}
               </Link>
             ))}
+            
+            <div className="h-[1px] w-full bg-primary/10 my-2"></div>
+            
+            {currentUser ? (
+              <div className="flex items-center justify-between p-3">
+                <div className="flex flex-col">
+                  <span className="font-sans text-sm font-bold text-primary">{currentUser.name}</span>
+                  <span className="font-mono text-[10px] uppercase text-primary/60">{currentUser.role}</span>
+                </div>
+                <button 
+                  onClick={logout}
+                  className="bg-red-500/10 text-red-500 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                >
+                  Log Out
+                </button>
+              </div>
+            ) : (
+              <Link to="/login" className="w-full text-center bg-accent text-background p-3 rounded-xl font-bold transition-colors hover:bg-accent/90">
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       )}
