@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { gsap } from 'gsap';
 import {
   Heart, Package, TrendingUp, MapPin, CheckCircle,
-  Clock, ArrowRight, ShieldCheck, Check
+  Clock, ArrowRight, ShieldCheck, Check, AlertCircle
 } from 'lucide-react';
 import { MagneticButton } from '../components/MagneticButton';
 
