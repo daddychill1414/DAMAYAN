@@ -45,7 +45,11 @@ export const Register = () => {
   };
 
   const nextStep = () => {
-    if (step === 1) {
+    if (step === 1 && !form.role) {
+      setError('Please select an account type');
+      return;
+    }
+    if (step === 2) {
       if (!form.name || !form.email || !form.password || !form.confirmPassword) {
         setError('All fields are required');
         return;
@@ -58,10 +62,6 @@ export const Register = () => {
         setError('Passwords do not match');
         return;
       }
-    }
-    if (step === 2 && !form.role) {
-      setError('Please select a role');
-      return;
     }
     setStep(s => s + 1);
   };
@@ -139,8 +139,38 @@ export const Register = () => {
         <div className="reg-fade bg-background/10 backdrop-blur-2xl border border-background/20 rounded-[2rem] p-8 shadow-2xl shadow-black/50">
           <form onSubmit={handleSubmit}>
             <div ref={stepRef} key={step}>
-              {/* ── Step 1: Account Details ── */}
+              
+              {/* ── Step 1: Role Selection ── */}
               {step === 1 && (
+                <div className="space-y-4">
+                  <p className="step-animate font-outfit text-sm text-background/60 mb-4">Select your account type. This determines your dashboard and capabilities in the Damayan network.</p>
+                  {ROLES.map(r => (
+                    <button
+                      key={r.id} type="button"
+                      onClick={() => updateForm('role', r.id)}
+                      className={`step-animate w-full text-left p-5 rounded-2xl border transition-all duration-300 flex items-center gap-4 btn-magnetic ${
+                        form.role === r.id
+                          ? 'bg-gradient-to-r ' + r.color + ' border-accent/50 shadow-lg shadow-accent/10 scale-[1.01]'
+                          : 'bg-background/5 border-background/10 hover:bg-background/8'
+                      }`}
+                    >
+                      <div className={`p-3 rounded-xl ${form.role === r.id ? 'bg-accent/20 text-accent' : 'bg-background/10 text-background/40'}`}>
+                        <r.icon size={22} />
+                      </div>
+                      <div className="flex-1">
+                        <div className={`font-sans font-bold text-base ${form.role === r.id ? 'text-background' : 'text-background/70'}`}>{r.id === 'Donor' ? 'Donor / Volunteer' : r.id}</div>
+                        <div className={`font-mono text-[10px] uppercase tracking-wider mt-1 ${form.role === r.id ? 'text-background/60' : 'text-background/35'}`}>{r.desc}</div>
+                      </div>
+                      {form.role === r.id && (
+                        <div className="p-1.5 bg-accent rounded-full text-white"><Check size={14} /></div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Step 2: Account Details ── */}
+              {step === 2 && (
                 <div className="space-y-5">
                   <div className="step-animate">
                     <label className="block font-outfit text-sm font-semibold text-background/80 mb-2">Full Name</label>
@@ -183,35 +213,6 @@ export const Register = () => {
                       className="w-full bg-background/5 border border-background/20 rounded-xl px-4 py-3 font-outfit text-sm text-background outline-none focus:border-accent placeholder:text-background/30 transition-colors"
                     />
                   </div>
-                </div>
-              )}
-
-              {/* ── Step 2: Role Selection ── */}
-              {step === 2 && (
-                <div className="space-y-4">
-                  <p className="step-animate font-outfit text-sm text-background/60 mb-4">Select your role in the Damayan network. This determines your dashboard and capabilities.</p>
-                  {ROLES.map(r => (
-                    <button
-                      key={r.id} type="button"
-                      onClick={() => updateForm('role', r.id)}
-                      className={`step-animate w-full text-left p-5 rounded-2xl border transition-all duration-300 flex items-center gap-4 btn-magnetic ${
-                        form.role === r.id
-                          ? 'bg-gradient-to-r ' + r.color + ' border-accent/50 shadow-lg shadow-accent/10 scale-[1.01]'
-                          : 'bg-background/5 border-background/10 hover:bg-background/8'
-                      }`}
-                    >
-                      <div className={`p-3 rounded-xl ${form.role === r.id ? 'bg-accent/20 text-accent' : 'bg-background/10 text-background/40'}`}>
-                        <r.icon size={22} />
-                      </div>
-                      <div className="flex-1">
-                        <div className={`font-sans font-bold text-base ${form.role === r.id ? 'text-background' : 'text-background/70'}`}>{r.id === 'Donor' ? 'Donor / Volunteer' : r.id}</div>
-                        <div className={`font-mono text-[10px] uppercase tracking-wider mt-1 ${form.role === r.id ? 'text-background/60' : 'text-background/35'}`}>{r.desc}</div>
-                      </div>
-                      {form.role === r.id && (
-                        <div className="p-1.5 bg-accent rounded-full text-white"><Check size={14} /></div>
-                      )}
-                    </button>
-                  ))}
                 </div>
               )}
 
