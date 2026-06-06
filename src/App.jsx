@@ -4,17 +4,22 @@ import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { NeedsBoard } from './pages/NeedsBoard';
 import { SmartMatch } from './pages/SmartMatch';
 import { MapView } from './pages/MapView';
-import { VolunteerHub } from './pages/VolunteerHub';
 import { CoordinatorDashboard } from './pages/CoordinatorDashboard';
+import { DonorDashboard } from './pages/DonorDashboard';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { PendingVerification } from './pages/PendingVerification';
+import { Appeal } from './pages/Appeal';
 import { QRScanner } from './pages/QRScanner';
 import { Feedback } from './pages/Feedback';
 import { GlobalToast } from './components/GlobalToast';
 import { useStore } from './store';
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
+const ProtectedRoute = ({ children, allowedRoles, requireVerification = false }) => {
   const { currentUser } = useStore();
   
   if (!currentUser) {
@@ -23,6 +28,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   
   if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
     return <Navigate to="/needs" replace />;
+  }
+
+  if (requireVerification && currentUser.role === 'Coordinator' && currentUser.status !== 'approved') {
+    if (currentUser.status === 'rejected') return <Navigate to="/appeal" replace />;
+    return <Navigate to="/pending" replace />;
   }
   
   return children;
@@ -37,24 +47,58 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        
         <Route path="/needs" element={<NeedsBoard />} />
         <Route path="/donate" element={<SmartMatch />} />
         <Route path="/map" element={<MapView />} />
-        <Route path="/volunteer" element={<VolunteerHub />} />
         
         {/* Protected Routes */}
         <Route 
           path="/dashboard" 
           element={
-            <ProtectedRoute allowedRoles={['Coordinator']}>
+            <ProtectedRoute allowedRoles={['Coordinator']} requireVerification={true}>
               <CoordinatorDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/donor-dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['Donor']}>
+              <DonorDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/pending" 
+          element={
+            <ProtectedRoute allowedRoles={['Coordinator']}>
+              <PendingVerification />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/appeal" 
+          element={
+            <ProtectedRoute allowedRoles={['Coordinator']}>
+              <Appeal />
             </ProtectedRoute>
           } 
         />
         <Route 
           path="/qr" 
           element={
-            <ProtectedRoute allowedRoles={['Coordinator', 'Center Admin']}>
+            <ProtectedRoute allowedRoles={['Coordinator', 'Admin']} requireVerification={true}>
               <QRScanner />
             </ProtectedRoute>
           } 

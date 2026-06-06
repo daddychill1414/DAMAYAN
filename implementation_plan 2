@@ -1,0 +1,266 @@
+# Damayan App — Role-Based System Overhaul
+
+Restructure the entire app around **3 distinct user roles** with proper authentication flows, admin verification, coordinator tools, and donor/volunteer features.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Role Consolidation**: You mentioned "Donor" and "Volunteer" as one combined role. The current app has them separate. I'm merging them into a single **"Donor/Volunteer"** role where users can both pledge supplies AND claim volunteer tasks. Please confirm this is correct.
+
+> [!WARNING]
+> **Breaking Change**: The current login system is a simple role-picker with no real authentication. This overhaul replaces it with a full Registration → Login → Verification flow. All existing "instant login" behavior will be removed.
+
+> [!IMPORTANT]
+> **No Backend**: Since there's no backend/database, all data (users, verification status, etc.) will be stored in Zustand state with `localStorage` persistence. This means data resets on cache clear. Is that acceptable for this phase, or should we add a lightweight backend (e.g., Firebase)?
+
+---
+
+## Open Questions
+
+1. **Coordinator verification documents** — What should the admin verify? Options:
+   - Upload of Barangay ID / official document (simulated file upload)
+   - Manual text field for "Barangay + Position" that admin reviews
+   - Both (document upload + text fields)
+
+2. **Appeal system** — Is this for:
+   - Coordinators whose verification was rejected (they appeal the rejection)?
+   - General user appeals (e.g., account issues)?
+   - Both?
+
+3. **Forgot password** — With no real backend, should this be:
+   - A simulated "reset link sent to email" UI flow (visual only)?
+   - A security question reset?
+   
+4. **Dashboard analytics** — For the admin dashboard, what metrics matter most? I'm planning:
+   - Total users by role, verification queue, approved/rejected counts
+   - System-wide donation metrics, active evacuation centers
+   - Is there anything specific you want to see?
+
+---
+
+## Proposed Changes
+
+### Architecture Overview
+
+```
+3 Roles:
+├── Admin          → Verify coordinators, system analytics, user management
+├── Coordinator    → Brgy official (must be verified by admin first)
+│                    Storage analytics, logistics, evacuation, request needs
+└── Donor/Volunteer → Pledge supplies, claim tasks, track donations
+```
+
+```mermaid
+flowchart TD
+    A[Landing Page] --> B{Has Account?}
+    B -->|No| C[Register]
+    B -->|Yes| D[Login]
+    C --> E{Role Selected}
+    E -->|Coordinator| F[Pending Verification]
+    E -->|Donor/Volunteer| G[Donor Dashboard]
+    E -->|Admin| H[Admin Dashboard]
+    D --> I{Verified?}
+    I -->|Coordinator - Pending| F
+    I -->|Coordinator - Approved| J[Coordinator Dashboard]
+    I -->|Coordinator - Rejected| K[Appeal Page]
+    I -->|Admin| H
+    I -->|Donor/Volunteer| G
+    F -->|Admin Approves| J
+    F -->|Admin Rejects| K
+    K -->|Resubmit| F
+    D -->|Forgot Password| L[Forgot Password Flow]
+```
+
+---
+
+### 1. State Management (store.js)
+
+#### [MODIFY] [store.js](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/store.js)
+
+Complete rewrite of the auth system with `localStorage` persistence:
+
+- **`users[]`** — Registry of all accounts: `{ id, email, password, name, role, status, barangay, position, documentName, createdAt }`
+  - `status`: `'active'` (admin/donor) | `'pending'` | `'approved'` | `'rejected'`
+- **`currentUser`** — Currently logged in user object
+- **`appeals[]`** — Appeal submissions: `{ id, userId, reason, status, createdAt }`
+- **Actions**: `register()`, `login()`, `logout()`, `forgotPassword()`, `verifyCoordinator()`, `rejectCoordinator()`, `submitAppeal()`, `approveAppeal()`
+- Add `persist` middleware from Zustand for `localStorage`
+
+---
+
+### 2. Authentication Pages
+
+#### [NEW] [Register.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/Register.jsx)
+
+Multi-step registration form:
+- **Step 1**: Email, Password, Confirm Password, Full Name
+- **Step 2**: Role Selection (3 cards: Admin, Coordinator, Donor/Volunteer)
+- **Step 3** (Coordinator only): Barangay name, Official position, Document upload (simulated)
+- GSAP animated step transitions
+- Glassmorphism card design matching existing aesthetic
+- After registration: Coordinator → redirected to "Pending Verification" page; Others → redirected to their dashboard
+
+#### [MODIFY] [Login.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/Login.jsx)
+
+Replace the current role-picker login with a proper email/password form:
+- Email + Password fields
+- "Remember me" toggle
+- "Forgot Password?" link
+- "Create Account" link to Register
+- Role-based redirect after login (same as current, but checks verification status for Coordinators)
+- Keep the cinematic dark background aesthetic
+
+#### [NEW] [ForgotPassword.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/ForgotPassword.jsx)
+
+- Email input → simulated "reset link sent" confirmation
+- Animated success state with check icon
+- Link back to login
+
+---
+
+### 3. Admin System
+
+#### [NEW] [AdminDashboard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/AdminDashboard.jsx)
+
+Full admin control center with sidebar tabs:
+
+**Tab 1 — Analytics Overview**:
+- Stats cards: Total Users, Pending Verifications, Active Coordinators, Total Donations
+- Animated bar/donut charts (pure CSS/SVG) showing user distribution by role
+- Recent activity feed (registrations, verifications, donations)
+
+**Tab 2 — User Verification Queue**:
+- Table/card list of pending coordinator applications
+- Each shows: Name, Email, Barangay, Position, Document submitted, Date applied
+- Action buttons: ✅ Approve / ❌ Reject (with confirmation modal)
+- Filter: All | Pending | Approved | Rejected
+
+**Tab 3 — User Management**:
+- Searchable list of all registered users
+- Role badges, status indicators
+- Quick actions: View details, Suspend/Activate
+
+**Tab 4 — Appeals**:
+- List of appeal submissions from rejected coordinators
+- Review reason, original application, appeal message
+- Approve (moves back to Pending for re-review) or Dismiss
+
+---
+
+### 4. Coordinator Dashboard Enhancement
+
+#### [MODIFY] [CoordinatorDashboard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/CoordinatorDashboard.jsx)
+
+Expand with new tabs alongside existing Overview and SMS:
+
+**New Tab — Storage & Livestock Analytics**:
+- Inventory cards with animated progress bars
+- Categories: Food, Water, Medical, Hygiene, Clothing
+- Stock level indicators: 🟢 Sufficient, 🟡 Low, 🔴 Critical
+- Visual bar chart of stock levels per category
+
+**New Tab — Evacuation Centers**:
+- Enhanced version of current center cards
+- Capacity donut charts (SVG animated)
+- Quick action: Update occupancy, Change status
+- Map integration link
+
+**New Tab — Request Needs**:
+- Form to submit new supply requests
+- Urgency level selector: Normal | Urgent | Critical
+- Request history with status tracking
+- "Low on Stock" quick-request templates
+
+**New Tab — Urgent Alerts**:
+- Broadcast urgent needs to the network
+- Flashing alert cards for critical items
+- Timeline of past urgent broadcasts
+
+---
+
+### 5. Donor/Volunteer Dashboard
+
+#### [NEW] [DonorDashboard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/DonorDashboard.jsx)
+
+Combined donor + volunteer dashboard:
+- **My Pledges**: Track donated items and their delivery status
+- **Available Tasks**: Volunteer tasks to claim (from existing VolunteerHub logic)
+- **Impact Stats**: Personal contribution metrics with animated counters
+- **Needs Feed**: Real-time needs from coordinators
+
+---
+
+### 6. Pending & Appeal Pages
+
+#### [NEW] [PendingVerification.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/PendingVerification.jsx)
+
+- Displayed to coordinators after registration (before admin approval)
+- Animated hourglass/clock illustration
+- Status: "Your application is under review"
+- Shows submitted details (barangay, position)
+- Link to contact support
+
+#### [NEW] [Appeal.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/Appeal.jsx)
+
+- For rejected coordinators
+- Shows rejection reason
+- Text area to submit appeal with supporting info
+- Submission confirmation with tracking
+
+---
+
+### 7. Navigation & Routing
+
+#### [MODIFY] [App.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/App.jsx)
+
+- Add new routes: `/register`, `/forgot-password`, `/admin`, `/donor-dashboard`, `/pending`, `/appeal`
+- Update `ProtectedRoute` to check verification status
+- Add `AdminRoute` wrapper that only allows admin role
+- Conditional redirects based on coordinator verification status
+
+#### [MODIFY] [Navbar.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/components/Navbar.jsx)
+
+- Dynamic nav links based on user role:
+  - **Admin**: Dashboard, Users, Verification, Analytics
+  - **Coordinator** (verified): Dashboard, Map, Needs, QR
+  - **Donor/Volunteer**: Needs Board, Donate, Volunteer, Map
+  - **Not logged in**: Needs Board, Map, Sign In
+- Show verification status badge for pending coordinators
+
+---
+
+## File Summary
+
+| Action | File | Purpose |
+|--------|------|---------|
+| MODIFY | `store.js` | Auth system, localStorage persistence, user/appeal management |
+| MODIFY | `App.jsx` | New routes, role-based protection |
+| MODIFY | `Navbar.jsx` | Dynamic role-based navigation |
+| MODIFY | `Login.jsx` | Email/password form replacing role picker |
+| MODIFY | `CoordinatorDashboard.jsx` | New tabs: storage, evacuation, requests, alerts |
+| NEW | `Register.jsx` | Multi-step registration with role selection |
+| NEW | `ForgotPassword.jsx` | Password reset flow |
+| NEW | `AdminDashboard.jsx` | Full admin center with verification queue |
+| NEW | `DonorDashboard.jsx` | Combined donor/volunteer dashboard |
+| NEW | `PendingVerification.jsx` | Waiting screen for unverified coordinators |
+| NEW | `Appeal.jsx` | Appeal submission for rejected coordinators |
+
+---
+
+## Verification Plan
+
+### Manual Verification
+1. **Registration flow**: Register as each role type (Admin, Coordinator, Donor/Volunteer) and verify correct redirects
+2. **Login flow**: Login with each role and verify dashboard routing
+3. **Coordinator verification**: Register as Coordinator → verify "Pending" screen → login as Admin → approve → verify Coordinator gains access
+4. **Rejection & Appeal**: Reject a coordinator → verify they see Appeal page → submit appeal → admin reviews
+5. **Forgot password**: Test the simulated flow
+6. **Navigation**: Verify nav links change per role
+7. **localStorage persistence**: Refresh browser, verify session persists
+8. **Responsive**: Test on mobile viewport sizes
+
+### Automated
+- `npm run build` to verify no compilation errors
+- Visual inspection via `npm run dev`

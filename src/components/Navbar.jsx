@@ -4,19 +4,9 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { MagneticButton } from './MagneticButton';
 import { useStore } from '../store';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ShieldAlert } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
-
-const navLinks = [
-  { to: '/needs', label: 'Needs Board' },
-  { to: '/donate', label: 'Donate' },
-  { to: '/map', label: 'Map' },
-  { to: '/volunteer', label: 'Volunteer' },
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/qr', label: 'Verify' },
-  { to: '/feedback', label: 'Feedback' },
-];
 
 export const Navbar = () => {
   const navRef = useRef(null);
@@ -43,6 +33,49 @@ export const Navbar = () => {
 
   const isScrolledDefault = location.pathname !== '/';
 
+  // Dynamic nav links based on role
+  const getNavLinks = () => {
+    if (!currentUser) {
+      return [
+        { to: '/needs', label: 'Needs Board' },
+        { to: '/map', label: 'Map' },
+      ];
+    }
+
+    if (currentUser.role === 'Admin') {
+      return [
+        { to: '/admin', label: 'Admin Center' },
+        { to: '/needs', label: 'Needs Board' },
+        { to: '/qr', label: 'Verify Delivery' },
+      ];
+    }
+
+    if (currentUser.role === 'Coordinator') {
+      if (currentUser.status === 'approved') {
+        return [
+          { to: '/dashboard', label: 'Dashboard' },
+          { to: '/needs', label: 'Needs Board' },
+          { to: '/map', label: 'Map' },
+          { to: '/qr', label: 'QR Scanner' },
+        ];
+      }
+      return [
+        { to: '/pending', label: 'Verification Status' },
+        { to: '/needs', label: 'Needs Board' },
+      ];
+    }
+
+    // Donor/Volunteer
+    return [
+      { to: '/donor-dashboard', label: 'My Dashboard' },
+      { to: '/needs', label: 'Needs Board' },
+      { to: '/donate', label: 'Donate' },
+      { to: '/map', label: 'Map' },
+    ];
+  };
+
+  const navLinks = getNavLinks();
+
   return (
     <>
       <nav
@@ -51,7 +84,14 @@ export const Navbar = () => {
         ${isScrolledDefault ? 'bg-background/90 backdrop-blur-xl text-primary border border-primary/10 shadow-lg' : 'text-background'}
         [&.nav-scrolled]:bg-background/90 [&.nav-scrolled]:backdrop-blur-xl [&.nav-scrolled]:text-primary [&.nav-scrolled]:border [&.nav-scrolled]:border-primary/10 [&.nav-scrolled]:shadow-lg`}
       >
-        <Link to="/" className="font-sans font-bold text-xl tracking-tight shrink-0">Damayan</Link>
+        <Link to="/" className="font-sans font-bold text-xl tracking-tight shrink-0 flex items-center gap-2">
+          Damayan
+          {currentUser?.role === 'Coordinator' && currentUser.status === 'pending' && (
+            <span className="hidden md:flex items-center gap-1 bg-yellow-500/20 text-yellow-500 text-[9px] font-mono uppercase tracking-wider px-2 py-1 rounded-full border border-yellow-500/30">
+              <ShieldAlert size={10} /> Pending Verification
+            </span>
+          )}
+        </Link>
         
         {/* Desktop Nav */}
         <div className="hidden lg:flex items-center gap-5 text-xs font-outfit font-semibold">
@@ -72,17 +112,19 @@ export const Navbar = () => {
             onChange={(e) => setLanguage(e.target.value)}
             className="bg-transparent text-[10px] font-mono font-bold outline-none cursor-pointer border border-current/20 rounded-full px-2 py-1"
           >
-            <option value="EN">EN</option>
-            <option value="TL">TL</option>
-            <option value="CEB">CEB</option>
-            <option value="ILO">ILO</option>
+            <option value="EN" className="text-dark">EN</option>
+            <option value="TL" className="text-dark">TL</option>
+            <option value="CEB" className="text-dark">CEB</option>
+            <option value="ILO" className="text-dark">ILO</option>
           </select>
           
           {currentUser ? (
             <div className="hidden sm:flex items-center gap-3">
               <div className="text-right flex flex-col justify-center">
                 <span className="font-sans text-xs font-bold leading-tight">{currentUser.name}</span>
-                <span className="font-mono text-[9px] uppercase opacity-60 leading-tight">{currentUser.role}</span>
+                <span className={`font-mono text-[9px] uppercase leading-tight ${currentUser.role === 'Admin' ? 'text-violet-500' : 'opacity-60'}`}>
+                  {currentUser.role}
+                </span>
               </div>
               <button 
                 onClick={logout}
@@ -108,6 +150,12 @@ export const Navbar = () => {
       {mobileOpen && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 w-[92%] max-w-md bg-background/95 backdrop-blur-xl rounded-3xl border border-primary/10 shadow-2xl z-50 p-6 lg:hidden">
           <div className="flex flex-col gap-3 font-outfit text-sm font-semibold">
+            {currentUser?.role === 'Coordinator' && currentUser.status === 'pending' && (
+              <div className="flex items-center gap-2 bg-yellow-500/10 text-yellow-600 text-xs font-mono uppercase tracking-wider px-3 py-2 rounded-xl mb-2">
+                <ShieldAlert size={14} /> Account Pending Verification
+              </div>
+            )}
+
             {navLinks.map(link => (
               <Link
                 key={link.to}
