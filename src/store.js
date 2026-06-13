@@ -264,7 +264,7 @@ export const useStore = create(
       })),
 
       addDonation: (donation) => set((state) => ({
-        donations: [...state.donations, { id: Date.now(), ...donation, status: 'Pending QR Scan' }]
+        donations: [...state.donations, { id: `don-${Date.now()}-${Math.floor(Math.random() * 1000)}`, ...donation, status: 'Pending QR Scan' }]
       })),
 
       markDelivered: (qrId) => set((state) => {

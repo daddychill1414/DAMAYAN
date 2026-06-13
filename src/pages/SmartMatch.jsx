@@ -138,8 +138,20 @@ export const SmartMatch = () => {
                 <button
                   onClick={() => {
                     const qty = parseInt(donorQty) || pledgeSuccess.match.remaining;
-                    pledgeNeed(pledgeSuccess.match.id, pledgeSuccess.match.remaining);
-                    pledgeNeed(pledgeSuccess.alternative.id, qty - pledgeSuccess.match.remaining);
+                    const matchQty = pledgeSuccess.match.remaining;
+                    const overflowQty = qty - matchQty;
+                    const altQty = Math.min(overflowQty, pledgeSuccess.alternative.remaining);
+
+                    // Pledge to original
+                    pledgeNeed(pledgeSuccess.match.id, matchQty);
+                    addDonation({ needId: pledgeSuccess.match.id, item: pledgeSuccess.match.item, amount: matchQty, center: pledgeSuccess.match.center.name });
+                    
+                    // Pledge to alternative
+                    if (altQty > 0) {
+                      pledgeNeed(pledgeSuccess.alternative.id, altQty);
+                      addDonation({ needId: pledgeSuccess.alternative.id, item: pledgeSuccess.alternative.item, amount: altQty, center: pledgeSuccess.alternative.center.name });
+                    }
+
                     setPledgeSuccess({ type: 'success', msg: 'Donation split and rerouted across centers!' });
                     handleSearch();
                   }}
