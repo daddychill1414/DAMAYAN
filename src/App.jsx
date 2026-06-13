@@ -15,6 +15,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { PendingVerification } from './pages/PendingVerification';
 import { Appeal } from './pages/Appeal';
 import { QRScanner } from './pages/QRScanner';
+import { FinancialLedger } from './pages/FinancialLedger';
 import { Feedback } from './pages/Feedback';
 import { GlobalToast } from './components/GlobalToast';
 import { useStore } from './store';
@@ -53,6 +54,7 @@ function App() {
         <Route path="/needs" element={<NeedsBoard />} />
         <Route path="/donate" element={<SmartMatch />} />
         <Route path="/map" element={<MapView />} />
+        <Route path="/ledger" element={<FinancialLedger />} />
         
         {/* Protected Routes */}
         <Route 

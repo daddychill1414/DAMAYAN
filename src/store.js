@@ -25,18 +25,18 @@ const initialTasks = [
 
 const initialInventory = [
   { id: 'inv-1', category: 'Food', items: [
-    { name: 'Canned Goods', current: 320, max: 500, unit: 'cans' },
-    { name: 'Rice (5kg bags)', current: 45, max: 200, unit: 'bags' },
-    { name: 'Instant Noodles', current: 180, max: 300, unit: 'packs' },
+    { name: 'Canned Goods', current: 320, max: 500, unit: 'cans', expirationDate: '2028-12-31' },
+    { name: 'Rice (5kg bags)', current: 45, max: 200, unit: 'bags', expirationDate: '2026-08-15' },
+    { name: 'Instant Noodles', current: 180, max: 300, unit: 'packs', expirationDate: '2027-05-20' },
   ]},
   { id: 'inv-2', category: 'Water', items: [
-    { name: '10L Containers', current: 80, max: 150, unit: 'containers' },
-    { name: '500mL Bottles', current: 420, max: 1000, unit: 'bottles' },
+    { name: '10L Containers', current: 80, max: 150, unit: 'containers', expirationDate: '2026-10-01' },
+    { name: '500mL Bottles', current: 420, max: 1000, unit: 'bottles', expirationDate: '2026-11-01' },
   ]},
   { id: 'inv-3', category: 'Medical', items: [
-    { name: 'First Aid Kits', current: 12, max: 50, unit: 'kits' },
-    { name: 'Paracetamol', current: 30, max: 200, unit: 'tablets' },
-    { name: 'Insulin', current: 2, max: 10, unit: 'units' },
+    { name: 'First Aid Kits', current: 12, max: 50, unit: 'kits', expirationDate: '2029-01-01' },
+    { name: 'Paracetamol', current: 30, max: 200, unit: 'tablets', expirationDate: '2027-02-15' },
+    { name: 'Insulin', current: 2, max: 10, unit: 'units', expirationDate: '2026-07-01' },
   ]},
   { id: 'inv-4', category: 'Hygiene', items: [
     { name: 'Diapers (Size L)', current: 15, max: 100, unit: 'pcs' },
@@ -48,6 +48,14 @@ const initialInventory = [
     { name: 'T-Shirts (Assorted)', current: 60, max: 200, unit: 'pcs' },
   ]},
 ];
+
+const initialLedger = {
+  totalCollected: 250000,
+  expenditures: [
+    { id: 'exp-1', date: '2026-06-10', description: 'Bulk purchase of Rice and Canned Goods', amount: 45000, receiptUrl: '#' },
+    { id: 'exp-2', date: '2026-06-12', description: 'Logistics/Trucking services', amount: 12000, receiptUrl: '#' },
+  ]
+};
 
 // ── Seed admin user ────────────────────────────────────────
 const seedAdmin = {
@@ -209,6 +217,9 @@ export const useStore = create(
       needs: initialNeeds,
       tasks: initialTasks,
       inventory: initialInventory,
+      financialLedger: initialLedger,
+      inventoryReports: [],
+      actionQueue: [],
       language: 'EN',
       isOffline: false,
       feedbacks: [],
@@ -223,7 +234,26 @@ export const useStore = create(
       },
 
       setLanguage: (lang) => set({ language: lang }),
-      toggleOffline: () => set((state) => ({ isOffline: !state.isOffline })),
+      
+      toggleOffline: () => {
+        const { isOffline, actionQueue, showToast } = get();
+        if (isOffline) {
+          // Coming back online -> Execute Sync Queue
+          if (actionQueue.length > 0) {
+            showToast(`Syncing ${actionQueue.length} offline actions...`, 'success');
+            // In a real app, this would iterate and execute queue
+            setTimeout(() => {
+              set({ actionQueue: [] });
+              get().showToast('Offline actions synced successfully!', 'success');
+            }, 1500);
+          }
+        }
+        set({ isOffline: !isOffline });
+      },
+
+      queueAction: (action) => set((state) => ({
+        actionQueue: [...state.actionQueue, { id: Date.now(), ...action }]
+      })),
 
       pledgeNeed: (needId, amount) => set((state) => ({
         needs: state.needs.map(n => n.id === needId ? { ...n, pledged: n.pledged + amount } : n)
@@ -281,13 +311,70 @@ export const useStore = create(
         centers: state.centers.map(c => c.id === centerId ? { ...c, ...updates } : c)
       })),
 
-      // ── Coordinator: Update Inventory ──────────
-      updateInventoryItem: (categoryId, itemName, newCurrent) => set(state => ({
-        inventory: state.inventory.map(cat =>
-          cat.id === categoryId
-            ? { ...cat, items: cat.items.map(item => item.name === itemName ? { ...item, current: newCurrent } : item) }
-            : cat
-        )
+      // ── Multi-tier Inventory Approvals ─────────
+      submitPhysicalCount: (report) => {
+        const newReport = {
+          id: `inv-rep-${Date.now()}`,
+          ...report,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        };
+        set(state => ({
+          inventoryReports: [...state.inventoryReports, newReport]
+        }));
+        return { success: true };
+      },
+
+      approvePhysicalCount: (reportId) => {
+        set(state => {
+          const report = state.inventoryReports.find(r => r.id === reportId);
+          if (!report) return state;
+
+          const updatedInventory = state.inventory.map(cat =>
+            cat.id === report.categoryId
+              ? { ...cat, items: cat.items.map(item => item.name === report.itemName ? { ...item, current: report.newCurrent } : item) }
+              : cat
+          );
+
+          return {
+            inventoryReports: state.inventoryReports.map(r => r.id === reportId ? { ...r, status: 'approved' } : r),
+            inventory: updatedInventory
+          };
+        });
+      },
+
+      rejectPhysicalCount: (reportId) => set(state => ({
+        inventoryReports: state.inventoryReports.map(r => r.id === reportId ? { ...r, status: 'rejected' } : r)
+      })),
+
+      // ── Cross-Center Resource Sharing ──────────
+      transferSurplus: (transferData) => {
+        // transferData: { fromCenterId, toCenterId, categoryId, itemName, amount }
+        set(state => {
+          // Deduct from current inventory (assuming current inventory represents 'fromCenter')
+          const updatedInventory = state.inventory.map(cat =>
+            cat.id === transferData.categoryId
+              ? { ...cat, items: cat.items.map(item => item.name === transferData.itemName ? { ...item, current: item.current - transferData.amount } : item) }
+              : cat
+          );
+          return { inventory: updatedInventory };
+        });
+        get().showToast(`Successfully transferred ${transferData.amount}x ${transferData.itemName} to target center.`);
+      },
+
+      // ── Financial Ledger ───────────────────────
+      addCashDonation: (amount) => set(state => ({
+        financialLedger: {
+          ...state.financialLedger,
+          totalCollected: state.financialLedger.totalCollected + amount
+        }
+      })),
+
+      addExpenditure: (exp) => set(state => ({
+        financialLedger: {
+          ...state.financialLedger,
+          expenditures: [...state.financialLedger.expenditures, { id: `exp-${Date.now()}`, ...exp }]
+        }
       })),
     }),
     {
@@ -300,6 +387,9 @@ export const useStore = create(
         needs: state.needs,
         tasks: state.tasks,
         inventory: state.inventory,
+        financialLedger: state.financialLedger,
+        inventoryReports: state.inventoryReports,
+        actionQueue: state.actionQueue,
         donations: state.donations,
         feedbacks: state.feedbacks,
         supplyRequests: state.supplyRequests,

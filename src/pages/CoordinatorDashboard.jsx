@@ -12,7 +12,7 @@ export const CoordinatorDashboard = () => {
   const { 
     needs, tasks, centers, feedbacks, inventory,
     submitSupplyRequest, broadcastUrgentAlert, updateCenter,
-    updateInventoryItem, showToast
+    updateInventoryItem, showToast, transferSurplus, submitPhysicalCount
   } = useStore();
   
   const [activeTab, setActiveTab] = useState('overview');
@@ -111,6 +111,7 @@ export const CoordinatorDashboard = () => {
   const tabs = [
     { id: 'overview', label: 'Metrics Overview', icon: BarChart3 },
     { id: 'storage', label: 'Storage Analytics', icon: Box },
+    { id: 'actions', label: 'Inventory Actions', icon: RefreshCw },
     { id: 'evacuation', label: 'Evacuation Centers', icon: Users },
     { id: 'requests', label: 'Request Needs', icon: Plus },
     { id: 'alerts', label: 'Urgent Alerts', icon: AlertTriangle },
@@ -235,7 +236,14 @@ export const CoordinatorDashboard = () => {
                                 <div className="flex justify-between items-end">
                                   <div>
                                     <p className="font-outfit text-sm font-semibold text-dark/80">{item.name}</p>
-                                    <p className="font-mono text-[9px] text-dark/40 uppercase">{item.current} / {item.max} {item.unit}</p>
+                                    <div className="flex gap-2 items-center mt-1">
+                                      <p className="font-mono text-[9px] text-dark/40 uppercase">{item.current} / {item.max} {item.unit}</p>
+                                      {item.expirationDate && (
+                                        <p className="font-mono text-[9px] text-accent uppercase flex items-center gap-1 bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">
+                                          <Clock size={10} /> Exp: {item.expirationDate}
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
                                   <span className={`font-mono text-[10px] font-bold ${pct < 20 ? 'text-red-500' : pct < 50 ? 'text-yellow-600' : 'text-green-600'}`}>
                                     {pct}% Capacity
@@ -251,6 +259,93 @@ export const CoordinatorDashboard = () => {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ INVENTORY ACTIONS TAB ═══ */}
+            {activeTab === 'actions' && (
+              <div key="actions" className="dash-fade">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  
+                  {/* Physical Count Form */}
+                  <div className="bg-white rounded-2xl p-6 border border-primary/5 shadow-lg shadow-primary/5">
+                    <h2 className="font-sans font-bold text-xl text-primary mb-2">Submit Physical Count</h2>
+                    <p className="font-outfit text-xs text-dark/60 mb-6">Log manual physical counts. This requires Admin approval to take effect.</p>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const fd = new FormData(e.target);
+                      submitPhysicalCount({
+                        categoryId: fd.get('categoryId'),
+                        itemName: fd.get('itemName'),
+                        newCurrent: Number(fd.get('newCurrent')),
+                        notes: fd.get('notes')
+                      });
+                      e.target.reset();
+                      showToast('Physical count submitted for approval.', 'success');
+                    }} className="space-y-4">
+                      <div>
+                        <label className="block font-outfit text-xs font-semibold text-dark/70 mb-1.5">Category</label>
+                        <select name="categoryId" className="w-full bg-background border border-primary/10 rounded-xl px-4 py-2.5 font-outfit text-sm outline-none focus:border-accent" required>
+                          {inventory.map(cat => <option key={cat.id} value={cat.id}>{cat.category}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-outfit text-xs font-semibold text-dark/70 mb-1.5">Specific Item</label>
+                        <input type="text" name="itemName" placeholder="e.g. Canned Goods" className="w-full bg-background border border-primary/10 rounded-xl px-4 py-2.5 font-outfit text-sm outline-none focus:border-accent" required />
+                      </div>
+                      <div>
+                        <label className="block font-outfit text-xs font-semibold text-dark/70 mb-1.5">New Quantity Count</label>
+                        <input type="number" name="newCurrent" min="0" placeholder="0" className="w-full bg-background border border-primary/10 rounded-xl px-4 py-2.5 font-outfit text-sm outline-none focus:border-accent" required />
+                      </div>
+                      <div>
+                        <label className="block font-outfit text-xs font-semibold text-dark/70 mb-1.5">Notes / Discrepancy Reason</label>
+                        <textarea name="notes" rows="2" className="w-full bg-background border border-primary/10 rounded-xl p-3 font-outfit text-sm outline-none focus:border-accent resize-none"></textarea>
+                      </div>
+                      <MagneticButton className="w-full bg-primary text-background py-3 mt-2">Submit Count</MagneticButton>
+                    </form>
+                  </div>
+
+                  {/* Transfer Surplus Form */}
+                  <div className="bg-white rounded-2xl p-6 border border-primary/5 shadow-lg shadow-primary/5">
+                    <h2 className="font-sans font-bold text-xl text-primary mb-2">Transfer Surplus</h2>
+                    <p className="font-outfit text-xs text-dark/60 mb-6">Move excess items directly to another evacuation center in need.</p>
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const fd = new FormData(e.target);
+                      transferSurplus({
+                        toCenterId: Number(fd.get('toCenterId')),
+                        categoryId: fd.get('categoryId'),
+                        itemName: fd.get('itemName'),
+                        amount: Number(fd.get('amount'))
+                      });
+                      e.target.reset();
+                    }} className="space-y-4">
+                      <div>
+                        <label className="block font-outfit text-xs font-semibold text-dark/70 mb-1.5">Destination Center</label>
+                        <select name="toCenterId" className="w-full bg-background border border-primary/10 rounded-xl px-4 py-2.5 font-outfit text-sm outline-none focus:border-accent" required>
+                          <option value="">Select Target Center...</option>
+                          {centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-outfit text-xs font-semibold text-dark/70 mb-1.5">Category</label>
+                        <select name="categoryId" className="w-full bg-background border border-primary/10 rounded-xl px-4 py-2.5 font-outfit text-sm outline-none focus:border-accent" required>
+                          {inventory.map(cat => <option key={cat.id} value={cat.id}>{cat.category}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block font-outfit text-xs font-semibold text-dark/70 mb-1.5">Item Name</label>
+                        <input type="text" name="itemName" placeholder="e.g. Rice (5kg bags)" className="w-full bg-background border border-primary/10 rounded-xl px-4 py-2.5 font-outfit text-sm outline-none focus:border-accent" required />
+                      </div>
+                      <div>
+                        <label className="block font-outfit text-xs font-semibold text-dark/70 mb-1.5">Transfer Amount</label>
+                        <input type="number" name="amount" min="1" placeholder="0" className="w-full bg-background border border-primary/10 rounded-xl px-4 py-2.5 font-outfit text-sm outline-none focus:border-accent" required />
+                      </div>
+                      <MagneticButton className="w-full bg-accent text-background py-3 mt-2">Dispatch Surplus</MagneticButton>
+                    </form>
+                  </div>
+
                 </div>
               </div>
             )}

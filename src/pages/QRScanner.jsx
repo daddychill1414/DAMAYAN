@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { MagneticButton } from '../components/MagneticButton';
-import { QrCode, CheckCircle, Package } from 'lucide-react';
+import { QrCode, CheckCircle, Package, ImagePlus } from 'lucide-react';
 
 export const QRScanner = () => {
   const { needs, centers, markDelivered } = useStore();
   const [selectedNeedId, setSelectedNeedId] = useState('');
   const [scanStatus, setScanStatus] = useState('idle');
+  const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   // Filter needs that have active pledges not yet delivered
   const pendingDeliveries = needs.filter(n => n.pledged > 0);
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
   const handleScan = () => {
-    if (!selectedNeedId) return;
+    if (!selectedNeedId || !imageFile) return;
     setScanStatus('scanning');
     
     // Simulate scan delay
@@ -25,6 +35,8 @@ export const QRScanner = () => {
         setTimeout(() => {
           setScanStatus('idle');
           setSelectedNeedId('');
+          setImageFile(null);
+          setPreviewUrl(null);
         }, 3000);
       }
     }, 1500);
@@ -80,9 +92,30 @@ export const QRScanner = () => {
               })}
             </select>
 
+            <div className="mt-4">
+              <label className="block font-outfit text-sm font-bold text-primary mb-2">Upload Proof of Delivery Photo:</label>
+              <div className="relative w-full h-32 border-2 border-dashed border-primary/20 rounded-xl flex items-center justify-center bg-dark/5 overflow-hidden hover:bg-dark/10 transition-colors cursor-pointer">
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  disabled={scanStatus !== 'idle'}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Preview" className="object-cover w-full h-full" />
+                ) : (
+                  <div className="flex flex-col items-center text-primary/60">
+                    <ImagePlus size={24} className="mb-2" />
+                    <span className="text-xs font-medium">Tap to upload photo</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <MagneticButton 
               onClick={handleScan}
-              disabled={!selectedNeedId || scanStatus !== 'idle'}
+              disabled={!selectedNeedId || !imageFile || scanStatus !== 'idle'}
               className="w-full bg-primary text-background py-4 disabled:opacity-50 disabled:cursor-not-allowed text-lg mt-4"
             >
               Scan Drop-Off <Package size={20} />

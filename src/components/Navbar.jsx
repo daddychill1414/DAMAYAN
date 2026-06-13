@@ -38,6 +38,7 @@ export const Navbar = () => {
     if (!currentUser) {
       return [
         { to: '/needs', label: 'Needs Board' },
+        { to: '/ledger', label: 'Financial Ledger' },
         { to: '/map', label: 'Map' },
       ];
     }
@@ -45,6 +46,7 @@ export const Navbar = () => {
     if (currentUser.role === 'Admin') {
       return [
         { to: '/admin', label: 'Admin Center' },
+        { to: '/ledger', label: 'Financial Ledger' },
         { to: '/needs', label: 'Needs Board' },
         { to: '/qr', label: 'Verify Delivery' },
       ];
@@ -53,7 +55,8 @@ export const Navbar = () => {
     if (currentUser.role === 'Coordinator') {
       if (currentUser.status === 'approved') {
         return [
-          { to: '/dashboard', label: 'Dashboard' },
+          { to: '/smart-match', label: 'Match Donations' },
+          { to: '/ledger', label: 'Financial Ledger' },
           { to: '/needs', label: 'Needs Board' },
           { to: '/map', label: 'Map' },
           { to: '/qr', label: 'QR Scanner' },
@@ -68,6 +71,7 @@ export const Navbar = () => {
     // Donor/Volunteer
     return [
       { to: '/donor-dashboard', label: 'My Dashboard' },
+      { to: '/ledger', label: 'Financial Ledger' },
       { to: '/needs', label: 'Needs Board' },
       { to: '/donate', label: 'Donate' },
       { to: '/map', label: 'Map' },

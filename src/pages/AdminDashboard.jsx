@@ -62,8 +62,9 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText,
 // ── Main Component ────────────────────────────────────────
 export const AdminDashboard = () => {
   const {
-    users, needs, centers, donations, appeals, feedbacks,
-    verifyCoordinator, rejectCoordinator, approveAppeal, dismissAppeal, showToast
+    users, needs, centers, donations, appeals, feedbacks, inventoryReports = [],
+    verifyCoordinator, rejectCoordinator, approveAppeal, dismissAppeal, showToast,
+    approvePhysicalCount, rejectPhysicalCount
   } = useStore();
   const [activeTab, setActiveTab] = useState('analytics');
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,6 +89,7 @@ export const AdminDashboard = () => {
   const donors = users.filter(u => u.role === 'Donor');
   const admins = users.filter(u => u.role === 'Admin');
   const pendingAppeals = appeals.filter(a => a.status === 'pending');
+  const pendingReports = inventoryReports.filter(r => r.status === 'pending');
 
   const totalRequested = needs.reduce((sum, n) => sum + n.requested, 0);
   const totalDelivered = needs.reduce((sum, n) => sum + n.delivered, 0);
@@ -154,6 +156,7 @@ export const AdminDashboard = () => {
   const tabs = [
     { id: 'analytics', label: 'Analytics', icon: BarChart3, badge: null },
     { id: 'verification', label: 'Verification', icon: ShieldCheck, badge: pendingCoords.length },
+    { id: 'reports', label: 'Inventory Reports', icon: FileSearch, badge: pendingReports.length },
     { id: 'users', label: 'All Users', icon: Users, badge: null },
     { id: 'appeals', label: 'Appeals', icon: MailQuestion, badge: pendingAppeals.length },
   ];
@@ -425,6 +428,61 @@ export const AdminDashboard = () => {
                           <span className="font-mono text-[9px] text-dark/30 uppercase">
                             Applied: {coord.createdAt ? new Date(coord.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown'}
                           </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ═══ REPORTS TAB ═══ */}
+            {activeTab === 'reports' && (
+              <div key="reports">
+                {inventoryReports.length === 0 ? (
+                  <div className="admin-fade bg-white rounded-2xl p-12 border border-primary/5 text-center">
+                    <FileSearch size={40} className="text-dark/20 mx-auto mb-4" />
+                    <p className="font-outfit text-dark/50">No physical counts submitted.</p>
+                  </div>
+                ) : (
+                  <div className="admin-fade space-y-4">
+                    {inventoryReports.map(report => (
+                      <div key={report.id} className="bg-white rounded-2xl p-6 border border-primary/5 shadow-lg shadow-primary/5">
+                        <div className="flex flex-col md:flex-row md:items-start gap-4">
+                          <div className="flex-1">
+                            <h4 className="font-sans font-bold text-sm text-primary mb-1">{report.itemName}</h4>
+                            <p className="font-mono text-[10px] text-dark/50 uppercase mb-3">Counted: {report.newCurrent} units</p>
+                            
+                            {report.notes && (
+                              <div className="bg-background/50 rounded-xl p-4 mb-3">
+                                <h5 className="font-mono text-[9px] uppercase tracking-widest text-dark/40 mb-1">Notes / Discrepancy</h5>
+                                <p className="font-outfit text-sm text-dark/70">{report.notes}</p>
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-3 text-[10px] font-mono text-dark/30">
+                              <span>Submitted: {new Date(report.createdAt).toLocaleDateString()}</span>
+                              <span>•</span>
+                              <span className={`px-2 py-0.5 rounded-full ${
+                                report.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                                report.status === 'approved' ? 'bg-green-100 text-green-600' :
+                                'bg-red-100 text-red-600'
+                              }`}>{report.status}</span>
+                            </div>
+                          </div>
+
+                          {report.status === 'pending' && (
+                            <div className="flex gap-2 shrink-0">
+                              <button onClick={() => { approvePhysicalCount(report.id); showToast('Report approved, inventory updated.', 'success'); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-600 rounded-xl font-outfit text-xs font-semibold hover:bg-green-200 transition-colors">
+                                <Check size={14} /> Approve
+                              </button>
+                              <button onClick={() => { rejectPhysicalCount(report.id); showToast('Report rejected.', 'warning'); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-xl font-outfit text-xs font-semibold hover:bg-red-200 transition-colors">
+                                <X size={14} /> Reject
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
