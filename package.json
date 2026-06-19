@@ -13,12 +13,11 @@
     "autoprefixer": "^10.5.0",
     "framer-motion": "^12.40.0",
     "gsap": "^3.15.0",
-    "leaflet": "^1.9.4",
     "lucide-react": "^1.16.0",
     "postcss": "^8.5.15",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.15.1",
     "tailwindcss": "^3.4.17",
     "zustand": "^5.0.13"

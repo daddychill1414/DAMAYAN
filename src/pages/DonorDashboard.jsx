@@ -1,248 +1,243 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store';
+import { Package, Heart, CheckCircle, AlertTriangle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { gsap } from 'gsap';
-import {
-  Heart, Package, TrendingUp, MapPin, CheckCircle,
-  Clock, ArrowRight, ShieldCheck, Check, AlertCircle
-} from 'lucide-react';
-import { MagneticButton } from '../components/MagneticButton';
+import { QRDisplay } from '../components/QRDisplay';
+import { CountdownTimer } from '../components/CountdownTimer';
 
 export const DonorDashboard = () => {
-  const { currentUser, donations, tasks, needs, centers, claimTask, showToast } = useStore();
-  const [activeTab, setActiveTab] = useState('impact');
-  const containerRef = useRef(null);
+  const { currentUser, getDonorPledges, getDonorHistory, toggleAnonymous, needs } = useStore();
+  const [activeTab, setActiveTab] = useState('active'); // active, history, profile
+  
+  if (!currentUser) return null;
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.from('.donor-fade', { y: 20, opacity: 0, duration: 0.6, stagger: 0.05, ease: 'power3.out' });
-    }, containerRef);
-    return () => ctx.revert();
-  }, [activeTab]);
+  const pledges = getDonorPledges(currentUser.id);
+  const history = getDonorHistory(currentUser.id);
+  
+  const activePledges = pledges.filter(p => p.status === 'reserved');
+  const pastPledges = pledges.filter(p => p.status !== 'reserved').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-  // Derived stats
-  const myDonations = donations; // Assuming simulated current user donations
-  const totalPledged = myDonations.length;
-  const verifiedDelivered = myDonations.filter(d => d.status === 'Delivered').length;
-  const myTasks = tasks.filter(t => t.status === 'Claimed');
-  const openTasks = tasks.filter(t => t.status === 'Open');
-
-  const handleClaimTask = (taskId) => {
-    claimTask(taskId);
-    showToast('Task claimed successfully. Coordinator notified.', 'success');
-  };
+  const totalDelivered = history.reduce((sum, h) => sum + h.quantity, 0);
 
   const tabs = [
-    { id: 'impact', label: 'My Impact', icon: TrendingUp },
-    { id: 'pledges', label: 'My Pledges', icon: Heart },
-    { id: 'tasks', label: 'Volunteer Tasks', icon: Package },
+    { id: 'active', label: `Active Pledges (${activePledges.length})` },
+    { id: 'history', label: 'History' },
+    { id: 'profile', label: 'Account Profile' },
   ];
 
   return (
-    <div ref={containerRef} className="pt-32 px-4 md:px-8 lg:px-16 pb-24 min-h-[90vh] bg-background">
-      <div className="max-w-7xl mx-auto">
-        <div className="donor-fade flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+    <div className="pt-32 px-4 md:px-8 lg:px-16 pb-24 min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto">
+        
+        {/* Header */}
+        <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-3 mb-3">
               <div className="h-[1px] w-8 bg-accent"></div>
-              <span className="font-mono text-[10px] tracking-widest uppercase text-accent">Donor & Volunteer</span>
+              <span className="font-mono text-[10px] tracking-widest uppercase text-accent">Donor Portal</span>
             </div>
-            <h1 className="font-sans font-bold text-4xl md:text-5xl text-primary mb-2">Welcome, {currentUser?.name || 'User'}</h1>
-            <p className="font-outfit text-dark/70 text-base">Track your pledges, view your impact, and claim volunteer tasks.</p>
+            <h1 className="font-sans font-bold text-4xl text-primary mb-2">Hello, {currentUser.name}</h1>
+            <p className="font-outfit text-dark/60">Manage your pledges and view your impact.</p>
           </div>
-          <div className="flex gap-3">
-            <Link to="/needs" className="bg-primary text-background px-6 py-3 rounded-xl text-sm font-outfit font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2">
-              <Heart size={16} /> Donate Now
-            </Link>
+          
+          {/* Quick Stats */}
+          <div className="flex gap-4">
+            <div className="bg-white px-6 py-4 rounded-2xl border border-primary/10 shadow-sm text-center">
+              <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Items Delivered</p>
+              <p className="font-sans font-bold text-3xl text-green-600">{totalDelivered}</p>
+            </div>
+            <div className="bg-white px-6 py-4 rounded-2xl border border-primary/10 shadow-sm text-center">
+              <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Strikes</p>
+              <p className={`font-sans font-bold text-3xl ${currentUser.strikes > 0 ? 'text-red-500' : 'text-primary'}`}>
+                {currentUser.strikes}/3
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar */}
-          <div className="w-full lg:w-60 shrink-0">
-            <div className="flex lg:flex-col gap-2 font-outfit text-sm font-semibold overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-              {tabs.map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`p-3 rounded-xl text-left transition-all duration-300 flex items-center gap-3 whitespace-nowrap ${
-                    activeTab === tab.id ? 'bg-primary text-background shadow-lg' : 'hover:bg-primary/5 text-dark/60'
-                  }`}>
-                  <tab.icon size={18} /> {tab.label}
-                </button>
-              ))}
+        {/* Navigation Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-4 mb-8 scrollbar-hide border-b border-primary/10">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-5 py-3 rounded-t-xl font-outfit text-sm font-semibold transition-all whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-primary text-background'
+                  : 'bg-transparent text-primary/60 hover:bg-primary/5'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="min-h-[50vh]">
+          
+          {/* ACTIVE PLEDGES */}
+          {activeTab === 'active' && (
+            <div className="space-y-6">
+              {activePledges.length === 0 ? (
+                <div className="bg-white rounded-3xl p-12 text-center border border-primary/10 shadow-sm">
+                  <Heart size={48} className="mx-auto text-primary/20 mb-4" />
+                  <h3 className="font-sans font-bold text-2xl text-primary mb-2">No Active Pledges</h3>
+                  <p className="font-outfit text-dark/60 mb-6">You don't have any items reserved for delivery right now.</p>
+                  <Link to="/needs" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-background rounded-xl font-outfit font-bold text-sm hover:bg-primary/90 transition-colors">
+                    View Needs Board <ArrowRight size={16} />
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {activePledges.map(pledge => {
+                    const need = needs.find(n => n.id === pledge.needId);
+                    return (
+                      <div key={pledge.id} className="bg-white rounded-3xl p-6 border border-primary/10 shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-accent"></div>
+                        
+                        <div className="mb-6">
+                          <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Item to Deliver</p>
+                          <h3 className="font-sans font-bold text-2xl text-primary line-clamp-1">{need?.itemName || 'Unknown Item'}</h3>
+                          <p className="font-outfit text-sm font-semibold text-accent">{pledge.quantity} units</p>
+                        </div>
+                        
+                        <div className="mb-6">
+                          <CountdownTimer expiresAt={pledge.expiresAt} />
+                        </div>
+                        
+                        <QRDisplay qrData={pledge.qrData} verificationCode={pledge.verificationCode} compact />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
-            
-            {/* ═══ IMPACT TAB ═══ */}
-            {activeTab === 'impact' && (
-              <div key="impact" className="donor-fade">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                  <div className="bg-white p-6 rounded-2xl shadow-lg shadow-primary/5 border border-primary/5 flex items-center gap-4">
-                    <div className="p-3 bg-accent/10 rounded-xl text-accent"><Heart size={24} /></div>
-                    <div>
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-dark/50 mb-1">Total Pledges</p>
-                      <p className="font-sans font-bold text-3xl text-primary">{totalPledged}</p>
-                    </div>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-lg shadow-primary/5 border border-primary/5 flex items-center gap-4">
-                    <div className="p-3 bg-green-100 rounded-xl text-green-600"><CheckCircle size={24} /></div>
-                    <div>
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-dark/50 mb-1">Delivered</p>
-                      <p className="font-sans font-bold text-3xl text-primary">{verifiedDelivered}</p>
-                    </div>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-lg shadow-primary/5 border border-primary/5 flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-xl text-primary"><Package size={24} /></div>
-                    <div>
-                      <p className="font-mono text-[10px] uppercase tracking-widest text-dark/50 mb-1">Tasks Completed</p>
-                      <p className="font-sans font-bold text-3xl text-primary">{myTasks.length}</p>
-                    </div>
-                  </div>
+          {/* HISTORY */}
+          {activeTab === 'history' && (
+            <div className="space-y-4">
+              {pastPledges.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="font-outfit text-dark/40">No past pledges found.</p>
                 </div>
-
-                <div className="bg-white rounded-2xl p-6 border border-primary/5 shadow-lg shadow-primary/5">
-                  <h2 className="font-sans font-bold text-xl text-primary mb-6">Live Needs Feed</h2>
-                  <div className="space-y-4">
-                    {needs.slice(0, 4).map(need => {
-                      const center = centers.find(c => c.id === need.centerId);
-                      const pct = Math.min(100, Math.round(((need.pledged + need.delivered) / need.requested) * 100));
-                      return (
-                        <div key={need.id} className="flex items-center gap-4 p-4 border border-primary/10 rounded-xl">
-                          <div className={`p-2.5 rounded-lg ${
-                            need.urgency === 'critical' ? 'bg-red-100 text-red-600' :
-                            need.urgency === 'urgent' ? 'bg-yellow-100 text-yellow-600' : 'bg-primary/10 text-primary'
-                          }`}>
-                            <AlertCircle size={18} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-outfit font-bold text-sm text-primary truncate">{need.item}</h4>
-                            <p className="font-mono text-[10px] text-dark/50 truncate">{center?.name}</p>
-                          </div>
-                          <div className="w-24 shrink-0">
-                            <div className="flex justify-between text-[9px] font-mono mb-1">
-                              <span>{pct}%</span>
-                              <span>{need.requested} req</span>
-                            </div>
-                            <div className="w-full bg-background h-1.5 rounded-full overflow-hidden">
-                              <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }}></div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-6 text-center">
-                    <Link to="/needs" className="text-accent text-sm font-outfit font-semibold hover:underline inline-flex items-center gap-1">
-                      View all needs <ArrowRight size={14} />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ═══ PLEDGES TAB ═══ */}
-            {activeTab === 'pledges' && (
-              <div key="pledges" className="donor-fade">
-                <div className="bg-white rounded-2xl p-6 border border-primary/5 shadow-lg shadow-primary/5">
-                  <h2 className="font-sans font-bold text-xl text-primary mb-6">Donation History</h2>
+              ) : (
+                pastPledges.map(pledge => {
+                  const need = needs.find(n => n.id === pledge.needId);
+                  const isVerified = pledge.status.startsWith('verified');
+                  const isExpired = pledge.status === 'expired';
+                  const isRejected = pledge.status === 'rejected';
                   
-                  {myDonations.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Heart size={40} className="text-dark/10 mx-auto mb-4" />
-                      <p className="font-outfit text-dark/50 mb-4">You haven't made any pledges yet.</p>
-                      <Link to="/needs" className="bg-primary text-background px-6 py-2.5 rounded-xl text-sm font-outfit font-semibold inline-block hover:bg-primary/90 transition-colors">
-                        Browse Needs
-                      </Link>
+                  return (
+                    <div key={pledge.id} className={`flex flex-col md:flex-row md:items-center justify-between p-5 rounded-2xl border ${
+                      isVerified ? 'bg-green-500/5 border-green-500/20' : 
+                      isExpired ? 'bg-amber-500/5 border-amber-500/20' :
+                      'bg-red-500/5 border-red-500/20'
+                    }`}>
+                      <div className="flex items-center gap-4 mb-3 md:mb-0">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          isVerified ? 'bg-green-500/20 text-green-600' :
+                          isExpired ? 'bg-amber-500/20 text-amber-600' :
+                          'bg-red-500/20 text-red-600'
+                        }`}>
+                          {isVerified ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
+                        </div>
+                        <div>
+                          <p className="font-sans font-bold text-primary">{pledge.quantity}x {need?.itemName || 'Item'}</p>
+                          <p className="font-mono text-[10px] text-dark/40">{new Date(pledge.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`inline-flex px-3 py-1 rounded-full font-mono text-[10px] uppercase font-bold tracking-wider ${
+                          isVerified ? 'bg-green-500/20 text-green-700' :
+                          isExpired ? 'bg-amber-500/20 text-amber-700' :
+                          'bg-red-500/20 text-red-700'
+                        }`}>
+                          {pledge.status.replace('_', ' ')}
+                        </span>
+                        {isVerified && pledge.status === 'verified_partial' && (
+                          <p className="font-outfit text-xs text-dark/50 mt-1">
+                            {pledge.actualDelivered} of {pledge.quantity} delivered
+                          </p>
+                        )}
+                        {isExpired && (
+                          <p className="font-outfit text-xs text-red-500 mt-1 flex items-center justify-end gap-1">
+                            <AlertTriangle size={12} /> Strike added
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {myDonations.map(donation => {
-                        const need = needs.find(n => n.id === donation.needId);
-                        const center = centers.find(c => c.id === need?.centerId);
-                        return (
-                          <div key={donation.id} className="p-4 border border-primary/10 rounded-xl flex flex-col md:flex-row md:items-center gap-4">
-                            <div className="flex-1">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <h4 className="font-outfit font-bold text-base text-primary">{need?.item || 'Unknown Item'}</h4>
-                                  <p className="font-mono text-[10px] text-dark/50 uppercase">Qty: {donation.amount} • To: {center?.name}</p>
-                                </div>
-                                <span className={`font-mono text-[10px] px-2 py-1 rounded-full font-bold uppercase ${
-                                  donation.status === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'
-                                }`}>{donation.status}</span>
-                              </div>
-                              {donation.status === 'Pending QR Scan' && (
-                                <p className="font-outfit text-xs text-dark/60 mt-2 bg-yellow-50 p-2 rounded-lg border border-yellow-100">
-                                  Show your QR code at the center to verify delivery.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                  );
+                })
+              )}
+            </div>
+          )}
 
-            {/* ═══ VOLUNTEER TASKS TAB ═══ */}
-            {activeTab === 'tasks' && (
-              <div key="tasks" className="donor-fade">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="bg-primary text-background rounded-2xl p-6 shadow-lg shadow-primary/20">
-                    <h3 className="font-sans font-bold text-xl mb-2">Active Tasks</h3>
-                    <p className="font-outfit text-background/70 text-sm mb-4">You have {myTasks.length} task(s) currently claimed.</p>
-                    {myTasks.length > 0 ? (
-                      <div className="space-y-3">
-                        {myTasks.map(task => (
-                          <div key={task.id} className="bg-background/10 border border-background/20 rounded-xl p-3">
-                            <p className="font-outfit font-semibold text-sm mb-1">{task.title}</p>
-                            <p className="font-mono text-[10px] text-background/60">{task.location}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="bg-background/10 border border-background/20 rounded-xl p-4 text-center">
-                        <p className="font-outfit text-sm text-background/60">No active tasks.</p>
-                      </div>
-                    )}
+          {/* PROFILE */}
+          {activeTab === 'profile' && (
+            <div className="max-w-2xl bg-white rounded-3xl p-8 border border-primary/10 shadow-sm">
+              <h2 className="font-sans font-bold text-2xl text-primary mb-6">Account Settings</h2>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4 pb-6 border-b border-primary/5">
+                  <div>
+                    <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Name</p>
+                    <p className="font-outfit font-semibold text-primary">{currentUser.name}</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Phone</p>
+                    <p className="font-outfit font-semibold text-primary">{currentUser.phone}</p>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Account Type</p>
+                    <span className="inline-block px-2 py-1 bg-primary/5 text-primary rounded font-mono text-[10px] uppercase font-bold">
+                      {currentUser.type}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Member Since</p>
+                    <p className="font-outfit font-semibold text-primary">{new Date(currentUser.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-6 border border-primary/5 shadow-lg shadow-primary/5">
-                  <h2 className="font-sans font-bold text-xl text-primary mb-6">Available Opportunities</h2>
-                  
-                  {openTasks.length === 0 ? (
-                    <div className="text-center py-12">
-                      <CheckCircle size={40} className="text-green-400 mx-auto mb-4" />
-                      <p className="font-outfit text-dark/50">All tasks are currently assigned. Check back later!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {openTasks.map(task => (
-                        <div key={task.id} className="p-4 border border-primary/10 rounded-xl hover:border-accent/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div>
-                            <h4 className="font-outfit font-bold text-base text-primary mb-1">{task.title}</h4>
-                            <div className="flex gap-3 font-mono text-[10px] text-dark/50">
-                              <span className="flex items-center gap-1"><MapPin size={12} /> {task.location}</span>
-                              <span className="flex items-center gap-1"><Package size={12} /> Transport: {task.transport}</span>
-                            </div>
-                          </div>
-                          <button onClick={() => handleClaimTask(task.id)} className="bg-accent text-white px-5 py-2 rounded-xl text-sm font-outfit font-semibold hover:bg-accent/90 transition-colors whitespace-nowrap shrink-0 flex items-center justify-center gap-2">
-                            Claim Task <ArrowRight size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="flex items-center justify-between p-4 bg-background rounded-2xl border border-primary/5">
+                  <div>
+                    <h4 className="font-sans font-bold text-primary flex items-center gap-2">
+                      {currentUser.isAnonymous ? <EyeOff size={16} className="text-accent" /> : <Eye size={16} />}
+                      Anonymous Mode
+                    </h4>
+                    <p className="font-outfit text-xs text-dark/50 mt-1 max-w-xs">
+                      When active, your name will be hidden on the public needs board. The coordinator can still see your details.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => toggleAnonymous(currentUser.id)}
+                    className={`relative w-14 h-8 rounded-full transition-colors ${currentUser.isAnonymous ? 'bg-accent' : 'bg-primary/20'}`}
+                  >
+                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-sm ${currentUser.isAnonymous ? 'left-7' : 'left-1'}`}></div>
+                  </button>
                 </div>
-              </div>
-            )}
 
-          </div>
+                <div className="p-4 bg-red-500/5 rounded-2xl border border-red-500/10">
+                  <h4 className="font-sans font-bold text-red-600 flex items-center gap-2">
+                    <AlertTriangle size={16} /> Strike System Status
+                  </h4>
+                  <div className="flex items-center gap-2 mt-3">
+                    {[1, 2, 3].map(strike => (
+                      <div key={strike} className={`flex-1 h-2 rounded-full ${
+                        strike <= currentUser.strikes ? 'bg-red-500' : 'bg-red-500/20'
+                      }`}></div>
+                    ))}
+                  </div>
+                  <p className="font-outfit text-xs text-red-600/80 mt-3">
+                    You have <strong>{currentUser.strikes}</strong> strike(s). Pledges that expire without delivery result in a strike. 3 strikes will restrict your account to prevent hoarding of needs.
+                  </p>
+                </div>
+
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

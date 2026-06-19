@@ -1,145 +1,136 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { MagneticButton } from '../components/MagneticButton';
-import { AlertTriangle, MapPin, Package } from 'lucide-react';
+import { MapPin, Package, AlertCircle } from 'lucide-react';
+import { UrgencyBadge } from '../components/UrgencyBadge';
 
 export const NeedsBoard = () => {
-  const { needs, centers, pledgeNeed, showToast } = useStore();
-  const [pledgeAmounts, setPledgeAmounts] = useState({});
-  const [duplicateAlert, setDuplicateAlert] = useState(null);
+  const { needs, barangay, openPledgeModal, currentUser } = useStore();
+  const [filter, setFilter] = useState('all');
 
-  const getCenter = (id) => centers.find(c => c.id === id);
-
-  const handlePledge = (need) => {
-    const amount = parseInt(pledgeAmounts[need.id] || 0);
-    if (!amount || amount <= 0) return;
-
-    // Duplicate Alert System Logic
-    const remainingNeeded = Math.max(0, need.requested - need.pledged - need.delivered);
-    if (amount > remainingNeeded) {
-      // Find another center that needs the same category
-      const alternative = needs.find(n => n.category === need.category && n.id !== need.id && (n.requested - n.pledged - n.delivered > 0));
+  // Filter and sort needs
+  const sortedNeeds = needs
+    .filter(n => n.status !== 'closed' && (filter === 'all' || n.category.toLowerCase() === filter.toLowerCase()))
+    .sort((a, b) => {
+      // Sort fulfilled to bottom
+      if (a.status === 'fulfilled' && b.status !== 'fulfilled') return 1;
+      if (a.status !== 'fulfilled' && b.status === 'fulfilled') return -1;
       
-      setDuplicateAlert({
-        originalNeed: need,
-        amount,
-        alternative
-      });
-      return;
-    }
+      // Sort critical to top
+      if (a.urgency === 'critical' && b.urgency !== 'critical') return -1;
+      if (a.urgency !== 'critical' && b.urgency === 'critical') return 1;
+      if (a.urgency === 'urgent' && b.urgency === 'stable') return -1;
+      if (a.urgency === 'stable' && b.urgency === 'urgent') return 1;
+      
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
 
-    // Success
-    pledgeNeed(need.id, amount);
-    setPledgeAmounts({ ...pledgeAmounts, [need.id]: '' });
-    showToast("Pledge successful! Thank you.", 'success');
-  };
-
-  const confirmAlternativePledge = () => {
-    if (duplicateAlert.alternative) {
-      pledgeNeed(duplicateAlert.alternative.id, duplicateAlert.amount);
-      showToast(`Pledge successfully rerouted to ${getCenter(duplicateAlert.alternative.centerId).name}!`, 'success');
-    } else {
-      pledgeNeed(duplicateAlert.originalNeed.id, duplicateAlert.amount);
-      showToast("Pledge added despite surplus.", 'warning');
-    }
-    setDuplicateAlert(null);
-    setPledgeAmounts({ ...pledgeAmounts, [duplicateAlert.originalNeed.id]: '' });
-  };
+  const categories = ['All', 'Food', 'Water', 'Medicine', 'Hygiene', 'Clothing'];
 
   return (
-    <div className="pt-32 px-8 md:px-16 pb-24 min-h-[80vh] bg-background">
+    <div className="pt-32 px-4 md:px-8 lg:px-16 pb-24 min-h-[80vh] bg-background">
       <div className="max-w-6xl mx-auto">
-        <h1 className="font-sans font-bold text-4xl md:text-5xl text-primary mb-2">Live Needs Board</h1>
-        <p className="font-outfit text-dark/70 mb-12 max-w-2xl text-lg">Real-time requests directly from evacuation centers. Choose what you can provide.</p>
-
-        {duplicateAlert && (
-          <div className="mb-8 p-6 bg-accent/10 border border-accent rounded-2xl flex flex-col md:flex-row gap-6 items-start">
-            <div className="bg-accent/20 p-3 rounded-full text-accent shrink-0">
-              <AlertTriangle size={24} />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+          <div>
+            <div className="inline-flex items-center gap-3 mb-3">
+              <div className="h-[1px] w-8 bg-accent"></div>
+              <span className="font-mono text-[10px] tracking-widest uppercase text-accent">Live Feed</span>
             </div>
-            <div>
-              <h3 className="font-sans font-bold text-xl text-accent mb-2">Duplicate Alert</h3>
-              <p className="font-outfit text-dark/80 mb-4">
-                You are trying to pledge {duplicateAlert.amount} of {duplicateAlert.originalNeed.item}, but {getCenter(duplicateAlert.originalNeed.centerId).name} only needs {Math.max(0, duplicateAlert.originalNeed.requested - duplicateAlert.originalNeed.pledged - duplicateAlert.originalNeed.delivered)} more. Pledging this might cause a surplus dump.
-              </p>
-              {duplicateAlert.alternative ? (
-                <div className="bg-white p-4 rounded-xl border border-primary/10 mb-4 shadow-sm">
-                  <p className="font-outfit text-primary font-semibold mb-2">Smart Match Suggestion:</p>
-                  <p className="font-outfit text-dark/70 text-sm">{getCenter(duplicateAlert.alternative.centerId).name} urgently needs {duplicateAlert.alternative.category} items.</p>
-                  <button 
-                    onClick={confirmAlternativePledge}
-                    className="mt-3 bg-primary text-background px-4 py-2 rounded-lg font-outfit text-sm font-bold hover:bg-primary/90 transition-colors"
-                  >
-                    Reroute Pledge Here
-                  </button>
-                </div>
-              ) : (
-                <p className="font-outfit text-dark/60 italic text-sm mb-4">No alternative centers found for this category.</p>
-              )}
-              <button 
-                onClick={() => setDuplicateAlert(null)}
-                className="text-dark/50 hover:text-dark text-sm font-outfit underline"
-              >
-                Cancel Pledge
-              </button>
-            </div>
+            <h1 className="font-sans font-bold text-4xl md:text-5xl text-primary mb-2">Needs Board</h1>
+            <p className="font-outfit text-dark/70 max-w-2xl text-lg">
+              Real-time shortages for {barangay.name}. Direct matching prevents dump donations.
+            </p>
           </div>
-        )}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide shrink-0">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setFilter(cat.toLowerCase())}
+                className={`px-4 py-2 rounded-xl font-outfit text-sm font-semibold transition-colors whitespace-nowrap ${
+                  filter === cat.toLowerCase()
+                    ? 'bg-primary text-background'
+                    : 'bg-white border border-primary/10 text-primary hover:bg-primary/5'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {needs.map(need => {
-            const center = getCenter(need.centerId);
-            const remaining = Math.max(0, need.requested - need.pledged - need.delivered);
-            const progress = ((need.pledged + need.delivered) / need.requested) * 100;
+          {sortedNeeds.map(need => {
+            const remaining = Math.max(0, need.quantityNeeded - need.quantityPledged - need.quantityDelivered);
+            const progress = ((need.quantityPledged + need.quantityDelivered) / need.quantityNeeded) * 100;
+            const isFulfilled = need.status === 'fulfilled' || remaining === 0;
 
             return (
-              <div key={need.id} className="bg-white rounded-[2rem] p-6 shadow-xl shadow-primary/5 border border-primary/5 flex flex-col">
+              <div key={need.id} className={`bg-white rounded-[2rem] p-6 shadow-xl border flex flex-col relative transition-all ${
+                isFulfilled ? 'opacity-60 border-primary/5 shadow-primary/5' :
+                need.urgency === 'critical' ? 'border-red-500/20 shadow-red-500/5' : 'border-primary/5 shadow-primary/5'
+              }`}>
+                {need.urgency === 'critical' && !isFulfilled && (
+                  <div className="absolute -top-3 -right-3 z-10">
+                    <span className="relative flex h-6 w-6">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-6 w-6 bg-red-500 text-white items-center justify-center">
+                        <AlertCircle size={12} />
+                      </span>
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-start mb-4">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-primary/60 bg-primary/5 px-2 py-1 rounded-full">
                     {need.category}
                   </span>
-                  {remaining === 0 && <span className="font-mono text-[10px] text-green-600 bg-green-100 px-2 py-1 rounded-full uppercase">Fulfilled</span>}
+                  <UrgencyBadge urgency={need.urgency} size="small" />
                 </div>
                 
-                <h3 className="font-sans font-bold text-2xl text-primary mb-1">{need.item}</h3>
+                <h3 className="font-sans font-bold text-2xl text-primary mb-2 line-clamp-2">{need.itemName}</h3>
+                
                 <div className="flex items-center gap-2 text-dark/60 font-outfit text-sm mb-6">
-                  <MapPin size={14} /> {center.name}
+                  <MapPin size={14} className="shrink-0" />
+                  <span className="truncate">{need.dropOffPoint}</span>
                 </div>
 
                 <div className="mb-6">
                   <div className="flex justify-between font-mono text-xs mb-2">
-                    <span className="text-dark/50">Requested: {need.requested}</span>
-                    <span className="text-primary font-bold">{remaining} needed</span>
+                    <span className="text-dark/50">Req: {need.quantityNeeded}</span>
+                    <span className={`font-bold ${isFulfilled ? 'text-green-600' : 'text-primary'}`}>
+                      {isFulfilled ? 'Fulfilled' : `${remaining} needed`}
+                    </span>
                   </div>
-                  <div className="w-full bg-primary/10 h-2 rounded-full overflow-hidden">
-                    <div 
-                      className="bg-accent h-full transition-all duration-1000 ease-out" 
-                      style={{ width: `${Math.min(100, progress)}%` }}
-                    ></div>
+                  <div className="w-full bg-primary/10 h-2 rounded-full overflow-hidden flex">
+                    <div className="h-full bg-green-500 transition-all duration-1000" style={{ width: `${Math.min(100, (need.quantityDelivered / need.quantityNeeded) * 100)}%` }}></div>
+                    <div className="h-full bg-accent transition-all duration-1000" style={{ width: `${Math.min(100, (need.quantityPledged / need.quantityNeeded) * 100)}%` }}></div>
                   </div>
                 </div>
 
-                <div className="mt-auto flex items-center gap-3">
-                  <input 
-                    type="number" 
-                    min="1"
-                    placeholder="Qty"
-                    disabled={remaining === 0}
-                    value={pledgeAmounts[need.id] || ''}
-                    onChange={(e) => setPledgeAmounts({...pledgeAmounts, [need.id]: e.target.value})}
-                    className="w-20 bg-background border border-primary/10 rounded-xl px-3 py-3 font-mono text-sm outline-none focus:border-accent disabled:opacity-50"
-                  />
+                <div className="mt-auto">
                   <MagneticButton 
-                    onClick={() => handlePledge(need)}
-                    disabled={remaining === 0}
-                    className="flex-1 bg-primary text-background py-3 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    onClick={() => openPledgeModal(need.id)}
+                    disabled={isFulfilled}
+                    className={`w-full py-3 text-sm flex items-center justify-center gap-2 ${
+                      isFulfilled ? 'bg-background text-dark/40 border border-primary/10 cursor-not-allowed' :
+                      'bg-primary text-background hover:bg-primary/90'
+                    }`}
                   >
-                    Pledge <Package size={16} />
+                    <Package size={16} />
+                    {isFulfilled ? 'Goal Reached' : 'Pledge Exact Item'}
                   </MagneticButton>
                 </div>
               </div>
             );
           })}
+
+          {sortedNeeds.length === 0 && (
+            <div className="col-span-full py-20 text-center">
+              <Package size={48} className="mx-auto text-dark/10 mb-4" />
+              <h3 className="font-sans font-bold text-2xl text-primary mb-2">No Active Needs</h3>
+              <p className="font-outfit text-dark/60">The barangay hasn't posted any shortages for this category.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

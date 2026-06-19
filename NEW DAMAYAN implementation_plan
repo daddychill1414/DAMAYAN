@@ -1,0 +1,415 @@
+# Damayan Match — Full Revamp Implementation Plan
+
+A complete overhaul of the existing Damayan app to align with the **final Damayan Match specification**: a barangay-centered relief goods matching system for disaster response.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **This is a major architectural overhaul.** The existing app has features (Admin dashboard, volunteer hub, financial ledger, map view, SMS gateway, multi-center management) that are **explicitly out of scope** in the new specification. These will be removed and replaced with the focused Damayan Match feature set.
+
+> [!WARNING]
+> **Breaking changes**: All existing user data in localStorage will be invalidated. The store schema changes fundamentally. The routing structure changes. Users will need to re-register after the revamp.
+
+> [!CAUTION]
+> **The app is client-side only (no backend).** All data is simulated in Zustand + localStorage. The 24-hour timer, QR codes, and verification flows are all simulated. This is a **prototype/demo**, not a production system.
+
+---
+
+## Open Questions
+
+1. **Aesthetic direction**: The current app uses the "Organic Tech" preset (Moss/Clay/Cream palette with Plus Jakarta Sans + Cormorant Garamond). Should we keep this aesthetic or shift to something different for the revamp? I recommend **keeping the current palette** since it fits the community/disaster-response feel well, but will refresh the overall design language.
+
+2. **QR Code generation**: Should we use a library like `qrcode.react` to generate actual scannable QR codes for the verification system, or use a simulated visual placeholder?
+
+3. **Landing page**: The current landing page is a full cinematic hero section with animated feature cards. Should we keep this as a marketing/informational page, or replace it with a simpler entry point that routes directly to login/register?
+
+---
+
+## Summary of Changes
+
+### What Gets REMOVED (out of scope per spec)
+| Current Feature | Reason for Removal |
+|---|---|
+| `AdminDashboard.jsx` | No "Admin" role in spec — only Coordinator and Donors |
+| `VolunteerHub.jsx` | Volunteers explicitly excluded from scope |
+| `FinancialLedger.jsx` | Cash donations out of scope — goods only |
+| `MapView.jsx` | No map/geo features in spec |
+| `SmartMatch.jsx` | Replaced by the Live Needs Board with pledge system |
+| `Appeal.jsx` | No admin approval flow — single barangay account model |
+| `PendingVerification.jsx` | No admin verification — barangay registers directly |
+| `Feedback.jsx` | Not in spec |
+| SMS/USSD Gateway (in Coordinator) | Out of scope |
+| Multi-center management | Single barangay scope |
+| Inventory/Storage Analytics | Not in spec |
+| Cross-center transfers | Single barangay scope |
+
+### What Gets ADDED (new spec features)
+| New Feature | Description |
+|---|---|
+| **24-Hour Reservation Timer** | Pledges auto-expire after 24h, returning quantity to active pool |
+| **QR Verification Code** | Generated after pledge for fast scanning at drop-off |
+| **Manual Verification Code** | `DMY-XXXX` code alternative for non-tech users |
+| **Strike System** | 1 miss = warning, 2 = temp block, 3 = account restricted |
+| **Partial Verification** | Coordinator can confirm Full/Partial/Reject delivery |
+| **Fallback Verification** | Search by phone/name if QR/code is lost |
+| **First-Commit Locking** | Real-time quantity lock prevents duplicate pledges |
+| **Urgency Boost** | Critical items highlighted, pulsing, pinned to top |
+| **Anonymous Donation Mode** | Public anonymity, coordinator still sees details |
+| **Community vs External Donors** | Permanent vs temporary accounts |
+| **Barangay QR Registration** | Coordinator generates QR for donor onboarding |
+| **Donation History Logs** | Full audit trail per donor |
+| **Need Status Tracker** | Active/fulfilled/expired tracking |
+
+---
+
+## Proposed Changes
+
+### 1. Data Store — Complete Rewrite
+
+#### [MODIFY] [store.js](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/store.js)
+
+**Full rewrite** of the Zustand store to match the new data model:
+
+**New Data Schema:**
+```js
+// Barangay (single instance)
+barangay: {
+  id, name, email, password, coordinatorName, position,
+  registrationQR: string, // generated barangay QR code data
+  deviceId: string,
+}
+
+// Users (only donors now — coordinator is the barangay itself)
+users: [{ 
+  id, name, phone, address?, password?, 
+  type: 'community' | 'external',
+  isAnonymous: boolean,
+  strikes: 0, // 0-3
+  status: 'active' | 'suspended' | 'blocked',
+  createdAt, barangayId,
+}]
+
+// Needs (posted by coordinator)
+needs: [{
+  id, itemName, category, quantityNeeded, quantityPledged, quantityDelivered,
+  urgency: 'critical' | 'moderate' | 'stable',
+  dropOffPoint: string,
+  status: 'active' | 'fulfilled' | 'closed',
+  createdAt,
+}]
+
+// Pledges (the reservation system)
+pledges: [{
+  id, needId, donorId, quantity, 
+  verificationCode: string, // DMY-XXXX
+  qrData: string,
+  status: 'reserved' | 'verified_full' | 'verified_partial' | 'expired' | 'rejected',
+  actualDelivered: number | null,
+  createdAt,
+  expiresAt, // createdAt + 24h
+}]
+
+// Donation History (verified deliveries)
+donationHistory: [{
+  id, pledgeId, donorId, needId, 
+  itemName, quantity, verifiedAt,
+  verifiedBy: 'qr' | 'manual' | 'fallback',
+}]
+```
+
+**New Store Actions:**
+- `loginAsCoordinator(email, password)` — single barangay login
+- `registerDonor(donorData, type)` — community or external registration
+- `loginAsDonor(phone, password)` — donor login
+- `postNeed({ itemName, category, quantity, urgency, dropOffPoint })`
+- `updateNeed(needId, updates)` — coordinator edits
+- `closeNeed(needId)` — mark request completed
+- `createPledge(needId, donorId, quantity)` — with first-commit locking, generates QR + manual code
+- `verifyPledge(pledgeId, type, actualQuantity)` — full/partial/reject verification
+- `verifyByFallback(searchTerm)` — search by phone/name
+- `expirePledges()` — auto-expiration logic (runs on interval)
+- `addStrike(donorId)` — increment strike counter
+- `generateBarangayQR()` — generate registration QR
+- `toggleAnonymous(donorId)` — toggle anonymous mode
+
+---
+
+### 2. Routing & App Structure
+
+#### [MODIFY] [App.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/App.jsx)
+
+Simplified route structure:
+
+```
+/                     → Landing (public)
+/login                → Login (role selector: Coordinator or Donor)
+/register             → Register via QR scan or manual
+/forgot-password      → ForgotPassword
+
+/needs                → Live Needs Board (public view, pledge requires login)
+/coordinator          → Coordinator Dashboard (protected)
+/donor                → Donor Dashboard (protected)
+/verify               → QR/Code Verification Scanner (coordinator only)
+```
+
+**Removed routes:** `/admin`, `/map`, `/ledger`, `/donate`, `/pending`, `/appeal`, `/feedback`, `/qr`, `/donor-dashboard`
+
+---
+
+### 3. Pages — Rewrites & New Pages
+
+#### [MODIFY] [Landing.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/Landing.jsx)
+
+Keep the cinematic hero structure but update content:
+- Hero text: "Community relief is the" / "Connection." 
+- Feature cards updated to showcase: **Live Need Matching**, **24-Hour Reservation**, **Dual Verification**
+- Philosophy section updated: "Most relief relies on guessing" → "We match exact needs to exact donations"
+- Protocol section: 3 phases → Post → Match → Verify
+- CTA: "Start Helping Your Barangay"
+
+---
+
+#### [MODIFY] [Login.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/Login.jsx)
+
+Redesign to support two login paths:
+- **Barangay Coordinator** login (email + password)
+- **Donor** login (phone number + password)
+- Toggle between the two with a tab selector
+- Remove Admin login path
+
+---
+
+#### [MODIFY] [Register.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/Register.jsx)
+
+Complete rewrite for the new registration flow:
+
+**Step 1**: Scan Barangay QR or enter Barangay code manually
+**Step 2**: Choose donor type (Community / External)
+**Step 3**: Fill registration form
+- Community: Full name, Phone, Address, Password
+- External: Full name, Phone, Current location (no password — temporary)
+**Step 4**: Optional: Enable anonymous mode
+
+Remove: Admin and Coordinator registration (coordinator is pre-registered as the barangay)
+
+---
+
+#### [MODIFY] [NeedsBoard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/NeedsBoard.jsx)
+
+Major rewrite — this becomes the **core public-facing page**:
+
+- **Urgency Boost**: Critical items pinned to top with pulsing red indicator
+- Color-coded urgency tags: 🔴 Critical, 🟡 Moderate, 🟢 Stable
+- Each card shows: item name, quantity needed, remaining, urgency, drop-off point
+- Progress bar showing pledged/delivered vs. needed
+- **Pledge flow** (requires login):
+  1. Donor selects quantity (with preset buttons: 5, 10, 20, custom)
+  2. First-commit locking prevents race conditions
+  3. On success: generates QR code + manual code (`DMY-XXXX`)
+  4. Shows 24-hour countdown timer
+  5. Pop-up: "Secure your code/QR for verification"
+- **Duplicate prevention**: If pledge would exceed remaining, show warning
+- **Anonymous badge**: Show "Anonymous Donor" for anonymous pledges in the feed
+
+---
+
+#### [NEW] [CoordinatorDashboard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/CoordinatorDashboard.jsx)
+
+Complete rewrite focused on the spec's coordinator features:
+
+**Tabs:**
+1. **Overview** — Stats: active needs, total pledges, verified deliveries, expired pledges, pending pledges
+2. **Post Needs** — Form: item name, category dropdown, quantity, urgency (Critical/Moderate/Stable), drop-off point. Internal verification reminder before posting.
+3. **Need Status Tracker** — List of all needs with status (active/fulfilled/closed), remaining quantities, ability to manually adjust (for walk-in donations)
+4. **Verify Donations** — 
+   - QR scanner (camera simulation)  
+   - Manual code input field
+   - Fallback: search by phone number or donor name
+   - Verification options: Full Match / Partial Match (with quantity input) / Reject
+5. **Donation Logs** — Full history: donor (or "Anonymous"), item, quantity, time, verification method
+6. **Community QR** — Generate/display barangay QR code for donor registration
+7. **Expired Pledges** — List of expired reservations with returned quantities
+
+---
+
+#### [MODIFY] [DonorDashboard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/DonorDashboard.jsx)
+
+Complete rewrite for donor-specific features:
+
+**Sections:**
+1. **My Impact** — Stats: total pledges, verified deliveries, pending pledges
+2. **Active Pledges** — Cards with 24-hour countdown timer, QR code display, manual code, status
+3. **Pledge History** — Past pledges: pending, verified, expired. Shows strike warnings if applicable.
+4. **Account Status** — Strike counter (0/3), anonymous mode toggle, account type (community/external)
+5. **Quick Pledge** — Direct link to needs board with urgency filter
+
+---
+
+#### [NEW] [VerifyDonation.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/VerifyDonation.jsx)
+
+Standalone verification page for coordinators:
+- QR camera scanner view (simulated)
+- Manual code input: `DMY-XXXX`
+- Fallback search: phone number or name
+- Shows pledge details after scan/input
+- Verification buttons: Full Match / Partial Match / Reject
+- On partial: input field for actual quantity delivered
+- System auto-recalculates remaining needs
+
+---
+
+#### [DELETE] Pages to remove:
+- [AdminDashboard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/AdminDashboard.jsx)
+- [VolunteerHub.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/VolunteerHub.jsx)
+- [FinancialLedger.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/FinancialLedger.jsx)
+- [MapView.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/MapView.jsx)
+- [SmartMatch.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/SmartMatch.jsx)
+- [Appeal.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/Appeal.jsx)
+- [PendingVerification.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/PendingVerification.jsx)
+- [Feedback.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/Feedback.jsx)
+- [QRScanner.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/QRScanner.jsx)
+
+---
+
+### 4. Components
+
+#### [MODIFY] [Navbar.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/components/Navbar.jsx)
+
+Simplified navigation:
+- Logo: "Damayan Match"
+- Links: Needs Board | (Coordinator login: Dashboard, Verify) | (Donor login: Dashboard)  
+- Auth button: Login/Logout
+- Show active user type badge (Coordinator / Community Donor / External Donor)
+
+#### [MODIFY] [Footer.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/components/Footer.jsx)
+
+Update branding to "Damayan Match" with updated tagline: "Barangay-Based Relief Goods Matching"
+
+#### [KEEP] [MagneticButton.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/components/MagneticButton.jsx)
+#### [KEEP] [GlobalToast.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/components/GlobalToast.jsx)
+
+#### [NEW] `components/CountdownTimer.jsx`
+- 24-hour countdown component for pledge reservations
+- Visual: circular progress ring + digital readout
+- Pulses red when < 1 hour remaining
+- Auto-triggers expiration callback
+
+#### [NEW] `components/QRDisplay.jsx`
+- Displays generated QR code for a pledge
+- Shows manual code (`DMY-XXXX`) below
+- Copy-to-clipboard for manual code
+- Reminder text: "Present this at the drop-off point"
+
+#### [NEW] `components/UrgencyBadge.jsx`
+- Consistent urgency tag component
+- 🔴 Critical: red bg, pulsing dot animation
+- 🟡 Moderate: yellow bg
+- 🟢 Stable: green bg
+
+#### [NEW] `components/PledgeModal.jsx`
+- Modal for creating a pledge from the needs board
+- Shows item details, remaining quantity
+- Quantity input with preset buttons (5, 10, 20, custom)
+- Anonymous mode checkbox
+- On success: shows generated QR + manual code
+- 24-hour timer starts immediately
+
+#### [NEW] `components/VerificationPanel.jsx`
+- Reusable panel for the verification flow
+- Tabs: QR Scan | Manual Code | Fallback Search
+- Shows pledge details on match
+- Full/Partial/Reject buttons
+
+---
+
+### 5. Design System Updates
+
+#### [MODIFY] [tailwind.config.js](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/tailwind.config.js)
+
+Keep the existing "Organic Tech" palette but add urgency colors:
+```js
+colors: {
+  primary: "#2E4036",    // Moss (keep)
+  accent: "#CC5833",     // Clay (keep)
+  background: "#F2F0E9", // Cream (keep)
+  dark: "#1A1A1A",       // Charcoal (keep)
+  urgency: {
+    critical: "#DC2626",  // Red
+    moderate: "#F59E0B",  // Amber
+    stable: "#16A34A",    // Green
+  }
+}
+```
+
+#### [MODIFY] [index.css](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/index.css)
+
+Add new utility classes:
+- `.pulse-critical` — pulsing animation for critical urgency items
+- `.countdown-ring` — SVG countdown circle animation
+- `.card-pledge` — pledge card with hover lift
+- `.verification-glow` — green glow effect on successful verification
+- Custom scrollbar styling
+
+#### [MODIFY] [index.html](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/index.html)
+
+Update:
+- Title: "Damayan Match — Barangay Relief Goods Matching"
+- Meta description updated
+- Keep existing Google Fonts links
+
+---
+
+### 6. Dependencies
+
+#### [MODIFY] [package.json](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/package.json)
+
+**Add:**
+- `qrcode.react` — QR code generation for pledges and barangay registration
+
+**Remove:**
+- `leaflet` — no map features
+- `react-leaflet` — no map features
+
+---
+
+## Implementation Order
+
+1. **Phase 1 — Store rewrite** (foundation — everything depends on this)
+2. **Phase 2 — Shared components** (CountdownTimer, QRDisplay, UrgencyBadge, PledgeModal, VerificationPanel)
+3. **Phase 3 — Delete removed pages**, update App.jsx routing  
+4. **Phase 4 — Rewrite core pages** (NeedsBoard, CoordinatorDashboard, DonorDashboard)
+5. **Phase 5 — Rewrite auth pages** (Login, Register)
+6. **Phase 6 — Update Landing, Navbar, Footer**
+7. **Phase 7 — Polish** (animations, urgency boost, timer expiration, strike system edge cases)
+8. **Phase 8 — Config & cleanup** (tailwind, CSS, index.html, package.json, remove unused deps)
+
+---
+
+## Verification Plan
+
+### Automated Tests
+```bash
+npm run build   # Verify no build errors after all changes
+npm run dev     # Manual testing in browser
+```
+
+### Manual Verification
+Test the following flows end-to-end:
+
+1. **Coordinator Flow**: Login → Post need → Generate community QR → Verify donation (QR + manual + fallback) → Partial verification → Close need
+2. **Community Donor Flow**: Register via QR → Login → Browse needs → Pledge → View QR/code → View countdown → Check pledge history
+3. **External Donor Flow**: Register as temp → Pledge → Verify → Account expires
+4. **Expiration Flow**: Create pledge → Wait (or simulate) → Confirm quantity returns to pool
+5. **Strike System**: Create pledge → Let it expire → Verify warning → Repeat → Verify suspension
+6. **Edge Cases**: Anonymous mode, duplicate pledge prevention (first-commit lock), partial delivery recalculation, walk-in manual adjustment
+7. **Urgency Boost**: Post critical need → Verify it appears pinned to top with pulsing effect
+
+### Seed Data for Testing
+Pre-populate with:
+- 1 barangay coordinator account
+- 2 community donors, 1 external donor  
+- 5 active needs across categories (food, water, medicine, hygiene, clothing)
+- 3 pledges (1 verified, 1 pending, 1 near-expiration)
+- Sample donation history entries

@@ -1,0 +1,62 @@
+# UI & Animation Overhaul Implementation Plan
+
+The goal of this overhaul is to transition the application from the previous "Organic Tech" aesthetic (Moss Green and Cream) to the new **Official & Actionable** aesthetic based on the provided color palette, and to elevate the Landing Page with smoother, more engaging GSAP animations.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]  
+> The new palette swaps out dark mode elements for a much cleaner, more clinical "Soft White" background. This means the Landing Page hero section, which currently uses a very dark forest background, will be shifted to a lighter, more official "Deep Blue" and "Soft White" theme to match the new trusted barangay aesthetic.
+
+---
+
+## Proposed Changes
+
+### 1. Design System & Global Styles
+
+#### [MODIFY] [tailwind.config.js](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/tailwind.config.js)
+Update the core theme colors to match the specification exactly:
+- `primary`: `#1E3A5F` (Deep Blue)
+- `accent`: `#F59E0B` (Warm Orange)
+- `background`: `#F8FAFC` (Soft White)
+- `dark`: `#334155` (Dark Slate)
+- `neutral`: `#6B7280` (Neutral Gray)
+- Keep standard Tailwind colors for `red-600`, `yellow-400`, `green-600` for urgencies since they map cleanly to the requested HEX codes.
+
+#### [MODIFY] [index.css](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/index.css)
+Update the global body classes to ensure `text-dark` is applied by default and verify background settings. Adjust the `noise-overlay` opacity to look better on the new lighter background.
+
+### 2. Landing Page Enhancements
+
+#### [MODIFY] [Landing.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/Landing.jsx)
+- **Hero Section**: Change the background image to something that represents "community" or "trust" (e.g., subtle architectural or community gradients) instead of a dark forest. Apply a Deep Blue gradient overlay. Add more staggered GSAP reveals for the text and buttons.
+- **Feature Cards**: Implement hover parallax effects on the feature cards. Add smooth scroll-triggered entrance animations for the "Functional Artifacts" section.
+- **Philosophy Section**: Switch from a dark mode section to a Deep Blue section with Warm Orange accents. Add word-by-word SplitText-style reveals on scroll.
+- **Protocol Cards**: Enhance the pinning animation. Give the SVG elements inside the cards more dynamic, continuous GSAP animations to make them feel like "live dashboards".
+
+### 3. Component Updates
+
+#### [MODIFY] [UrgencyBadge.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/components/UrgencyBadge.jsx)
+Map the urgency states to the exact colors requested:
+- Critical: `#DC2626`
+- Moderate/Warning: `#FACC15`
+- Stable: `#16A34A`
+
+#### [MODIFY] [Navbar.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/components/Navbar.jsx) & [Footer.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/components/Footer.jsx)
+Ensure text contrasts well against the new Soft White background and uses Deep Blue (`primary`) for main links and Warm Orange (`accent`) for hover states and calls-to-action.
+
+### 4. Page Updates (Color & Readability)
+We will do a sweeping pass across all core pages to ensure they utilize the new `dark` (Slate) and `neutral` (Gray) colors for text hierarchy, removing any hardcoded `text-black/60` classes.
+
+#### [MODIFY] [NeedsBoard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/NeedsBoard.jsx)
+#### [MODIFY] [CoordinatorDashboard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/CoordinatorDashboard.jsx)
+#### [MODIFY] [DonorDashboard.jsx](file:///c:/Users/ranie/.gemini/antigravity-ide/scratch/damayan-app/src/pages/DonorDashboard.jsx)
+
+---
+
+## Verification Plan
+1. Start the local dev server.
+2. Verify the Landing Page animations feel smooth, premium, and trigger correctly on scroll.
+3. Check the color contrast of Deep Blue against Soft White across all dashboard components to ensure readability.
+4. Verify that Critical, Moderate, and Stable urgency tags match the exact requested Hex codes in the inspector.

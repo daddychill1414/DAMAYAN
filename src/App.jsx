@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -7,106 +7,85 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { NeedsBoard } from './pages/NeedsBoard';
-import { SmartMatch } from './pages/SmartMatch';
-import { MapView } from './pages/MapView';
 import { CoordinatorDashboard } from './pages/CoordinatorDashboard';
 import { DonorDashboard } from './pages/DonorDashboard';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { PendingVerification } from './pages/PendingVerification';
-import { Appeal } from './pages/Appeal';
-import { QRScanner } from './pages/QRScanner';
-import { FinancialLedger } from './pages/FinancialLedger';
-import { Feedback } from './pages/Feedback';
+import { VerifyDonation } from './pages/VerifyDonation';
 import { GlobalToast } from './components/GlobalToast';
+import { PledgeModal } from './components/PledgeModal';
 import { useStore } from './store';
 
-const ProtectedRoute = ({ children, allowedRoles, requireVerification = false }) => {
+const ProtectedRoute = ({ children, allowedType }) => {
   const { currentUser } = useStore();
   
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
   
-  if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
-    return <Navigate to="/needs" replace />;
-  }
-
-  if (requireVerification && currentUser.role === 'Coordinator' && currentUser.status !== 'approved') {
-    if (currentUser.status === 'rejected') return <Navigate to="/appeal" replace />;
-    return <Navigate to="/pending" replace />;
+  if (allowedType && currentUser.userType !== allowedType) {
+    if (currentUser.userType === 'coordinator') {
+      return <Navigate to="/coordinator" replace />;
+    } else {
+      return <Navigate to="/donor" replace />;
+    }
   }
   
   return children;
 };
 
 function App() {
+  const { expirePledges } = useStore();
+
+  // Run expiration logic every minute
+  useEffect(() => {
+    expirePledges(); // Initial check
+    const interval = setInterval(expirePledges, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [expirePledges]);
+
   return (
     <>
       <div className="noise-overlay"></div>
       <GlobalToast />
+      <PledgeModal />
       <Navbar />
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        
         <Route path="/needs" element={<NeedsBoard />} />
-        <Route path="/donate" element={<SmartMatch />} />
-        <Route path="/map" element={<MapView />} />
-        <Route path="/ledger" element={<FinancialLedger />} />
         
-        {/* Protected Routes */}
+        {/* Coordinator Routes */}
         <Route 
-          path="/dashboard" 
+          path="/coordinator" 
           element={
-            <ProtectedRoute allowedRoles={['Coordinator']} requireVerification={true}>
+            <ProtectedRoute allowedType="coordinator">
               <CoordinatorDashboard />
             </ProtectedRoute>
           } 
         />
         <Route 
-          path="/admin" 
+          path="/verify" 
           element={
-            <ProtectedRoute allowedRoles={['Admin']}>
-              <AdminDashboard />
+            <ProtectedRoute allowedType="coordinator">
+              <VerifyDonation />
             </ProtectedRoute>
           } 
         />
+
+        {/* Donor Routes */}
         <Route 
-          path="/donor-dashboard" 
+          path="/donor" 
           element={
-            <ProtectedRoute allowedRoles={['Donor']}>
+            <ProtectedRoute allowedType="donor">
               <DonorDashboard />
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="/pending" 
-          element={
-            <ProtectedRoute allowedRoles={['Coordinator']}>
-              <PendingVerification />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/appeal" 
-          element={
-            <ProtectedRoute allowedRoles={['Coordinator']}>
-              <Appeal />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/qr" 
-          element={
-            <ProtectedRoute allowedRoles={['Coordinator', 'Admin']} requireVerification={true}>
-              <QRScanner />
-            </ProtectedRoute>
-          } 
-        />
         
-        <Route path="/feedback" element={<Feedback />} />
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Footer />
     </>

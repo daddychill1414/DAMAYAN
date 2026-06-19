@@ -1,399 +1,596 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// ── Helpers ────────────────────────────────────────────────
+const generateCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'DMY-';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+};
+
+const generateId = (prefix = 'id') => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
 // ── Seed Data ──────────────────────────────────────────────
-const initialCenters = [
-  { id: 1, name: "San Jose Evacuation Center", lat: 14.5995, lng: 120.9842, capacity: 500, current: 450, status: "Critical" },
-  { id: 2, name: "Brgy. Rosario Covered Court", lat: 14.6042, lng: 120.9822, capacity: 300, current: 150, status: "Stable" },
-  { id: 3, name: "Makati High School", lat: 14.5547, lng: 121.0244, capacity: 1000, current: 800, status: "Warning" },
-];
-
-const initialNeeds = [
-  { id: 101, centerId: 1, category: "Hygiene", item: "Diapers (Size L)", requested: 50, pledged: 20, delivered: 0, urgency: "urgent" },
-  { id: 102, centerId: 1, category: "Water", item: "10L Drinking Water", requested: 100, pledged: 100, delivered: 80, urgency: "normal" },
-  { id: 103, centerId: 2, category: "Medical", item: "Insulin (10 units)", requested: 10, pledged: 2, delivered: 0, urgency: "critical" },
-  { id: 104, centerId: 3, category: "Food", item: "Canned Goods", requested: 500, pledged: 480, delivered: 200, urgency: "normal" },
-  { id: 105, centerId: 1, category: "Clothing", item: "Blankets", requested: 80, pledged: 30, delivered: 10, urgency: "urgent" },
-  { id: 106, centerId: 3, category: "Medical", item: "Paracetamol (500mg)", requested: 200, pledged: 50, delivered: 20, urgency: "urgent" },
-];
-
-const initialTasks = [
-  { id: 201, title: "Drive 20 boxes of Water to San Jose", location: "San Jose Center", status: "Open", transport: "Van/Truck" },
-  { id: 202, title: "Verify Makati High School needs milk", location: "Makati High School", status: "Open", transport: "None" },
-  { id: 203, title: "Sort clothes at Rosario Court", location: "Brgy. Rosario", status: "Claimed", transport: "None" },
-];
-
-const initialInventory = [
-  { id: 'inv-1', category: 'Food', items: [
-    { name: 'Canned Goods', current: 320, max: 500, unit: 'cans', expirationDate: '2028-12-31' },
-    { name: 'Rice (5kg bags)', current: 45, max: 200, unit: 'bags', expirationDate: '2026-08-15' },
-    { name: 'Instant Noodles', current: 180, max: 300, unit: 'packs', expirationDate: '2027-05-20' },
-  ]},
-  { id: 'inv-2', category: 'Water', items: [
-    { name: '10L Containers', current: 80, max: 150, unit: 'containers', expirationDate: '2026-10-01' },
-    { name: '500mL Bottles', current: 420, max: 1000, unit: 'bottles', expirationDate: '2026-11-01' },
-  ]},
-  { id: 'inv-3', category: 'Medical', items: [
-    { name: 'First Aid Kits', current: 12, max: 50, unit: 'kits', expirationDate: '2029-01-01' },
-    { name: 'Paracetamol', current: 30, max: 200, unit: 'tablets', expirationDate: '2027-02-15' },
-    { name: 'Insulin', current: 2, max: 10, unit: 'units', expirationDate: '2026-07-01' },
-  ]},
-  { id: 'inv-4', category: 'Hygiene', items: [
-    { name: 'Diapers (Size L)', current: 15, max: 100, unit: 'pcs' },
-    { name: 'Soap Bars', current: 90, max: 200, unit: 'bars' },
-    { name: 'Toothbrush Kits', current: 50, max: 150, unit: 'kits' },
-  ]},
-  { id: 'inv-5', category: 'Clothing', items: [
-    { name: 'Blankets', current: 25, max: 100, unit: 'pcs' },
-    { name: 'T-Shirts (Assorted)', current: 60, max: 200, unit: 'pcs' },
-  ]},
-];
-
-const initialLedger = {
-  totalCollected: 250000,
-  expenditures: [
-    { id: 'exp-1', date: '2026-06-10', description: 'Bulk purchase of Rice and Canned Goods', amount: 45000, receiptUrl: '#' },
-    { id: 'exp-2', date: '2026-06-12', description: 'Logistics/Trucking services', amount: 12000, receiptUrl: '#' },
-  ]
-};
-
-// ── Seed admin user ────────────────────────────────────────
-const seedAdmin = {
-  id: 'admin-001',
-  email: 'admin@damayan.ph',
-  password: 'admin123',
-  name: 'System Admin',
-  role: 'Admin',
-  status: 'active',
-  createdAt: '2026-01-01T00:00:00Z',
-};
-
-const seedCoordinatorPending = {
-  id: 'coord-pending-001',
-  email: 'juan@brgy.ph',
-  password: 'coord123',
-  name: 'Juan Dela Cruz',
-  role: 'Coordinator',
-  status: 'pending',
-  barangay: 'Brgy. San Jose',
+const seedBarangay = {
+  id: 'brgy-001',
+  name: 'Brgy. Ibabang Dupay',
+  email: 'ibabangdupay@brgy.gov.ph',
+  password: 'brgy123',
+  coordinatorName: 'Kap. Juan Dela Cruz',
   position: 'Barangay Captain',
-  documentName: 'barangay_id_juan.pdf',
-  createdAt: '2026-06-01T08:00:00Z',
+  registrationQR: 'DAMAYAN-BRGY-IBABANGDUPAY-001',
+  deviceId: 'device-001',
+  municipality: 'Lucena City',
+  province: 'Quezon',
 };
 
-const seedCoordinatorApproved = {
-  id: 'coord-approved-001',
-  email: 'maria@brgy.ph',
-  password: 'coord123',
-  name: 'Maria Santos',
-  role: 'Coordinator',
-  status: 'approved',
-  barangay: 'Brgy. Rosario',
-  position: 'Barangay Kagawad',
-  documentName: 'barangay_cert_maria.pdf',
-  createdAt: '2026-05-15T10:00:00Z',
-};
+const seedDonors = [
+  {
+    id: 'donor-001',
+    name: 'Maria Santos',
+    phone: '09171234567',
+    address: 'Block 5, Lot 12, Ibabang Dupay',
+    password: 'donor123',
+    type: 'community',
+    isAnonymous: false,
+    strikes: 0,
+    status: 'active',
+    barangayId: 'brgy-001',
+    createdAt: '2026-06-01T08:00:00Z',
+  },
+  {
+    id: 'donor-002',
+    name: 'Pedro Reyes',
+    phone: '09289876543',
+    address: '123 Rizal St., Ibabang Dupay',
+    password: 'donor123',
+    type: 'community',
+    isAnonymous: true,
+    strikes: 1,
+    status: 'active',
+    barangayId: 'brgy-001',
+    createdAt: '2026-06-05T10:00:00Z',
+  },
+  {
+    id: 'donor-003',
+    name: 'Ana Garcia',
+    phone: '09351112222',
+    location: 'Tayabas City, Quezon',
+    type: 'external',
+    isAnonymous: false,
+    strikes: 0,
+    status: 'active',
+    barangayId: 'brgy-001',
+    createdAt: '2026-06-15T14:00:00Z',
+  },
+];
 
-const seedDonor = {
-  id: 'donor-001',
-  email: 'donor@email.com',
-  password: 'donor123',
-  name: 'Ana Reyes',
-  role: 'Donor',
-  status: 'active',
-  createdAt: '2026-05-20T14:00:00Z',
-};
+const seedNeeds = [
+  {
+    id: 'need-001',
+    itemName: 'Canned Goods (Assorted)',
+    category: 'Food',
+    quantityNeeded: 50,
+    quantityPledged: 15,
+    quantityDelivered: 5,
+    urgency: 'critical',
+    dropOffPoint: 'Ibabang Dupay Covered Court',
+    status: 'active',
+    createdAt: '2026-06-18T06:00:00Z',
+  },
+  {
+    id: 'need-002',
+    itemName: '10L Drinking Water',
+    category: 'Water',
+    quantityNeeded: 100,
+    quantityPledged: 30,
+    quantityDelivered: 20,
+    urgency: 'critical',
+    dropOffPoint: 'Ibabang Dupay Covered Court',
+    status: 'active',
+    createdAt: '2026-06-18T06:30:00Z',
+  },
+  {
+    id: 'need-003',
+    itemName: 'Paracetamol (500mg)',
+    category: 'Medicine',
+    quantityNeeded: 200,
+    quantityPledged: 40,
+    quantityDelivered: 10,
+    urgency: 'moderate',
+    dropOffPoint: 'Barangay Health Center',
+    status: 'active',
+    createdAt: '2026-06-18T07:00:00Z',
+  },
+  {
+    id: 'need-004',
+    itemName: 'Blankets',
+    category: 'Clothing',
+    quantityNeeded: 80,
+    quantityPledged: 20,
+    quantityDelivered: 15,
+    urgency: 'moderate',
+    dropOffPoint: 'Ibabang Dupay Covered Court',
+    status: 'active',
+    createdAt: '2026-06-18T08:00:00Z',
+  },
+  {
+    id: 'need-005',
+    itemName: 'Hygiene Kit (Soap, Toothbrush, Shampoo)',
+    category: 'Hygiene',
+    quantityNeeded: 60,
+    quantityPledged: 60,
+    quantityDelivered: 60,
+    urgency: 'stable',
+    dropOffPoint: 'Barangay Hall',
+    status: 'fulfilled',
+    createdAt: '2026-06-17T10:00:00Z',
+  },
+];
+
+const now = Date.now();
+const seedPledges = [
+  {
+    id: 'pledge-001',
+    needId: 'need-001',
+    donorId: 'donor-001',
+    quantity: 10,
+    verificationCode: 'DMY-4821',
+    qrData: 'DAMAYAN-PLEDGE-001-10-CANNED',
+    status: 'verified_full',
+    actualDelivered: 10,
+    createdAt: new Date(now - 48 * 60 * 60 * 1000).toISOString(),
+    expiresAt: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'pledge-002',
+    needId: 'need-002',
+    donorId: 'donor-002',
+    quantity: 15,
+    verificationCode: 'DMY-7293',
+    qrData: 'DAMAYAN-PLEDGE-002-15-WATER',
+    status: 'reserved',
+    actualDelivered: null,
+    createdAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+    expiresAt: new Date(now + 22 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'pledge-003',
+    needId: 'need-001',
+    donorId: 'donor-003',
+    quantity: 5,
+    verificationCode: 'DMY-1056',
+    qrData: 'DAMAYAN-PLEDGE-003-5-CANNED',
+    status: 'reserved',
+    actualDelivered: null,
+    createdAt: new Date(now - 23 * 60 * 60 * 1000).toISOString(),
+    expiresAt: new Date(now + 1 * 60 * 60 * 1000).toISOString(), // expiring soon!
+  },
+];
+
+const seedDonationHistory = [
+  {
+    id: 'history-001',
+    pledgeId: 'pledge-001',
+    donorId: 'donor-001',
+    needId: 'need-001',
+    itemName: 'Canned Goods (Assorted)',
+    quantity: 10,
+    verifiedAt: new Date(now - 46 * 60 * 60 * 1000).toISOString(),
+    verifiedBy: 'qr',
+  },
+];
 
 // ── Store ──────────────────────────────────────────────────
 export const useStore = create(
   persist(
     (set, get) => ({
-      // ── Auth ───────────────────────────────────
-      users: [seedAdmin, seedCoordinatorPending, seedCoordinatorApproved, seedDonor],
-      currentUser: null,
-      appeals: [],
+      // ── Barangay (single instance) ────────────────
+      barangay: seedBarangay,
+      currentUser: null, // { ...userData, userType: 'coordinator' | 'donor' }
 
-      register: (userData) => {
-        const { users } = get();
-        const exists = users.find(u => u.email === userData.email);
-        if (exists) return { success: false, error: 'Email already registered' };
+      // ── Donors ────────────────────────────────────
+      donors: seedDonors,
 
-        const newUser = {
-          id: `user-${Date.now()}`,
-          ...userData,
-          status: userData.role === 'Coordinator' ? 'pending' : 'active',
-          createdAt: new Date().toISOString(),
-        };
+      // ── Needs ─────────────────────────────────────
+      needs: seedNeeds,
 
-        set({ users: [...users, newUser], currentUser: newUser });
-        return { success: true, user: newUser };
-      },
+      // ── Pledges ───────────────────────────────────
+      pledges: seedPledges,
 
-      login: (email, password) => {
-        const { users } = get();
-        const user = users.find(u => u.email === email && u.password === password);
-        if (!user) return { success: false, error: 'Invalid email or password' };
-        set({ currentUser: user });
-        return { success: true, user };
-      },
+      // ── Donation History ──────────────────────────
+      donationHistory: seedDonationHistory,
 
-      logout: () => set({ currentUser: null }),
-
-      forgotPassword: (email) => {
-        const { users } = get();
-        const user = users.find(u => u.email === email);
-        if (!user) return { success: false, error: 'No account found with this email' };
-        // Simulated — in production this sends an email
-        return { success: true };
-      },
-
-      resetPassword: (email, newPassword) => {
-        set(state => ({
-          users: state.users.map(u =>
-            u.email === email ? { ...u, password: newPassword } : u
-          )
-        }));
-      },
-
-      // ── Admin: Coordinator Verification ────────
-      verifyCoordinator: (userId) => {
-        set(state => {
-          const updatedUsers = state.users.map(u =>
-            u.id === userId ? { ...u, status: 'approved' } : u
-          );
-          const currentUser = state.currentUser?.id === userId
-            ? { ...state.currentUser, status: 'approved' }
-            : state.currentUser;
-          return { users: updatedUsers, currentUser };
-        });
-      },
-
-      rejectCoordinator: (userId, reason) => {
-        set(state => ({
-          users: state.users.map(u =>
-            u.id === userId ? { ...u, status: 'rejected', rejectionReason: reason || 'Insufficient verification documents' } : u
-          )
-        }));
-      },
-
-      // ── Appeals ────────────────────────────────
-      submitAppeal: (userId, reason) => {
-        const appeal = {
-          id: `appeal-${Date.now()}`,
-          userId,
-          reason,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-        };
-        set(state => ({ appeals: [...state.appeals, appeal] }));
-        return { success: true };
-      },
-
-      approveAppeal: (appealId) => {
-        set(state => {
-          const appeal = state.appeals.find(a => a.id === appealId);
-          if (!appeal) return state;
-          return {
-            appeals: state.appeals.map(a =>
-              a.id === appealId ? { ...a, status: 'approved' } : a
-            ),
-            users: state.users.map(u =>
-              u.id === appeal.userId ? { ...u, status: 'pending' } : u
-            ),
-          };
-        });
-      },
-
-      dismissAppeal: (appealId) => {
-        set(state => ({
-          appeals: state.appeals.map(a =>
-            a.id === appealId ? { ...a, status: 'dismissed' } : a
-          ),
-        }));
-      },
-
-      // ── Disaster Relief Data ───────────────────
-      centers: initialCenters,
-      needs: initialNeeds,
-      tasks: initialTasks,
-      inventory: initialInventory,
-      financialLedger: initialLedger,
-      inventoryReports: [],
-      actionQueue: [],
-      language: 'EN',
-      isOffline: false,
-      feedbacks: [],
-      donations: [],
-      supplyRequests: [],
-      urgentAlerts: [],
+      // ── UI State ──────────────────────────────────
       toast: null,
+      pledgeModal: null, // { needId } when open
 
+      // ── Toast ─────────────────────────────────────
       showToast: (message, type = 'success') => {
         set({ toast: { message, type } });
         setTimeout(() => set({ toast: null }), 4000);
       },
 
-      setLanguage: (lang) => set({ language: lang }),
-      
-      toggleOffline: () => {
-        const { isOffline, actionQueue, showToast } = get();
-        if (isOffline) {
-          // Coming back online -> Execute Sync Queue
-          if (actionQueue.length > 0) {
-            showToast(`Syncing ${actionQueue.length} offline actions...`, 'success');
-            // In a real app, this would iterate and execute queue
-            setTimeout(() => {
-              set({ actionQueue: [] });
-              get().showToast('Offline actions synced successfully!', 'success');
-            }, 1500);
+      // ═══════════════════════════════════════════════
+      // AUTH
+      // ═══════════════════════════════════════════════
+
+      loginAsCoordinator: (email, password) => {
+        const { barangay } = get();
+        if (barangay.email === email && barangay.password === password) {
+          set({ currentUser: { ...barangay, userType: 'coordinator' } });
+          return { success: true };
+        }
+        return { success: false, error: 'Invalid barangay email or password' };
+      },
+
+      loginAsDonor: (phone, password) => {
+        const { donors } = get();
+        const donor = donors.find(d => d.phone === phone && d.password === password);
+        if (!donor) return { success: false, error: 'Invalid phone number or password' };
+        if (donor.status === 'blocked') return { success: false, error: 'Your account has been restricted due to multiple failed pledges. Contact the barangay coordinator.' };
+        if (donor.status === 'suspended') return { success: false, error: 'Your account is temporarily suspended. Please wait or contact the barangay coordinator.' };
+        set({ currentUser: { ...donor, userType: 'donor' } });
+        return { success: true };
+      },
+
+      registerDonor: (donorData) => {
+        const { donors } = get();
+        // Check if phone already registered
+        const exists = donors.find(d => d.phone === donorData.phone);
+        if (exists) return { success: false, error: 'This phone number is already registered' };
+
+        const newDonor = {
+          id: generateId('donor'),
+          ...donorData,
+          isAnonymous: false,
+          strikes: 0,
+          status: 'active',
+          barangayId: 'brgy-001',
+          createdAt: new Date().toISOString(),
+        };
+
+        set({ donors: [...donors, newDonor], currentUser: { ...newDonor, userType: 'donor' } });
+        return { success: true, donor: newDonor };
+      },
+
+      logout: () => set({ currentUser: null }),
+
+      // ═══════════════════════════════════════════════
+      // NEEDS (Coordinator)
+      // ═══════════════════════════════════════════════
+
+      postNeed: ({ itemName, category, quantity, urgency, dropOffPoint }) => {
+        const newNeed = {
+          id: generateId('need'),
+          itemName,
+          category,
+          quantityNeeded: quantity,
+          quantityPledged: 0,
+          quantityDelivered: 0,
+          urgency,
+          dropOffPoint,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        };
+        set(state => ({ needs: [newNeed, ...state.needs] }));
+        get().showToast(`Need posted: ${quantity}x ${itemName}`, 'success');
+        return { success: true, need: newNeed };
+      },
+
+      updateNeed: (needId, updates) => {
+        set(state => ({
+          needs: state.needs.map(n => n.id === needId ? { ...n, ...updates } : n),
+        }));
+      },
+
+      closeNeed: (needId) => {
+        set(state => ({
+          needs: state.needs.map(n => n.id === needId ? { ...n, status: 'closed' } : n),
+        }));
+        get().showToast('Need request closed', 'success');
+      },
+
+      // Manual adjustment for walk-in donations
+      adjustNeedQuantity: (needId, deliveredAmount) => {
+        set(state => ({
+          needs: state.needs.map(n => {
+            if (n.id !== needId) return n;
+            const newDelivered = n.quantityDelivered + deliveredAmount;
+            const isFulfilled = newDelivered >= n.quantityNeeded;
+            return {
+              ...n,
+              quantityDelivered: newDelivered,
+              status: isFulfilled ? 'fulfilled' : n.status,
+            };
+          }),
+        }));
+        get().showToast(`Manual adjustment: +${deliveredAmount} delivered`, 'success');
+      },
+
+      // ═══════════════════════════════════════════════
+      // PLEDGES (Donors)
+      // ═══════════════════════════════════════════════
+
+      createPledge: (needId, donorId, quantity) => {
+        const { needs, pledges } = get();
+        const need = needs.find(n => n.id === needId);
+        if (!need) return { success: false, error: 'Need not found' };
+
+        // First-commit locking: check remaining
+        const remaining = need.quantityNeeded - need.quantityPledged - need.quantityDelivered;
+        if (quantity > remaining) {
+          return { success: false, error: `Only ${remaining} remaining. Reduce your pledge quantity.` };
+        }
+        if (remaining <= 0) {
+          return { success: false, error: 'This need has already been fully pledged.' };
+        }
+
+        const verificationCode = generateCode();
+        const pledgeId = generateId('pledge');
+        const createdAt = new Date();
+        const expiresAt = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+
+        const newPledge = {
+          id: pledgeId,
+          needId,
+          donorId,
+          quantity,
+          verificationCode,
+          qrData: `DAMAYAN-${pledgeId}-${quantity}-${need.itemName.substring(0, 10).replace(/\s+/g, '')}`,
+          status: 'reserved',
+          actualDelivered: null,
+          createdAt: createdAt.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+        };
+
+        // Atomically update pledge + need quantity (first-commit lock)
+        set(state => ({
+          pledges: [...state.pledges, newPledge],
+          needs: state.needs.map(n =>
+            n.id === needId
+              ? { ...n, quantityPledged: n.quantityPledged + quantity }
+              : n
+          ),
+        }));
+
+        return { success: true, pledge: newPledge };
+      },
+
+      // ═══════════════════════════════════════════════
+      // VERIFICATION (Coordinator)
+      // ═══════════════════════════════════════════════
+
+      verifyPledge: (pledgeId, verificationType, actualQuantity = null) => {
+        // verificationType: 'full' | 'partial' | 'reject'
+        const { pledges, needs, donors } = get();
+        const pledge = pledges.find(p => p.id === pledgeId);
+        if (!pledge) return { success: false, error: 'Pledge not found' };
+        if (pledge.status !== 'reserved') return { success: false, error: 'Pledge is not in reserved status' };
+
+        const need = needs.find(n => n.id === pledge.needId);
+
+        if (verificationType === 'full') {
+          // Full match
+          const delivered = pledge.quantity;
+          set(state => ({
+            pledges: state.pledges.map(p =>
+              p.id === pledgeId ? { ...p, status: 'verified_full', actualDelivered: delivered } : p
+            ),
+            needs: state.needs.map(n => {
+              if (n.id !== pledge.needId) return n;
+              const newPledged = Math.max(0, n.quantityPledged - delivered);
+              const newDelivered = n.quantityDelivered + delivered;
+              const isFulfilled = newDelivered >= n.quantityNeeded;
+              return { ...n, quantityPledged: newPledged, quantityDelivered: newDelivered, status: isFulfilled ? 'fulfilled' : n.status };
+            }),
+            donationHistory: [...state.donationHistory, {
+              id: generateId('history'),
+              pledgeId,
+              donorId: pledge.donorId,
+              needId: pledge.needId,
+              itemName: need?.itemName || 'Unknown',
+              quantity: delivered,
+              verifiedAt: new Date().toISOString(),
+              verifiedBy: 'qr',
+            }],
+          }));
+          get().showToast(`Donation verified: ${delivered}x ${need?.itemName}`, 'success');
+          return { success: true };
+        }
+
+        if (verificationType === 'partial') {
+          // Partial match — actualQuantity is what was really delivered
+          const delivered = actualQuantity || 0;
+          const returned = pledge.quantity - delivered;
+
+          set(state => ({
+            pledges: state.pledges.map(p =>
+              p.id === pledgeId ? { ...p, status: 'verified_partial', actualDelivered: delivered } : p
+            ),
+            needs: state.needs.map(n => {
+              if (n.id !== pledge.needId) return n;
+              // Remove the full pledge from pledged, add actual delivered, return difference
+              const newPledged = Math.max(0, n.quantityPledged - pledge.quantity);
+              const newDelivered = n.quantityDelivered + delivered;
+              const isFulfilled = newDelivered >= n.quantityNeeded;
+              return { ...n, quantityPledged: newPledged, quantityDelivered: newDelivered, status: isFulfilled ? 'fulfilled' : n.status };
+            }),
+            donationHistory: [...state.donationHistory, {
+              id: generateId('history'),
+              pledgeId,
+              donorId: pledge.donorId,
+              needId: pledge.needId,
+              itemName: need?.itemName || 'Unknown',
+              quantity: delivered,
+              verifiedAt: new Date().toISOString(),
+              verifiedBy: 'manual',
+            }],
+          }));
+          get().showToast(`Partial verification: ${delivered}/${pledge.quantity} delivered. ${returned} returned to pool.`, 'warning');
+          return { success: true };
+        }
+
+        if (verificationType === 'reject') {
+          // Reject — return all to pool, add strike
+          set(state => ({
+            pledges: state.pledges.map(p =>
+              p.id === pledgeId ? { ...p, status: 'rejected', actualDelivered: 0 } : p
+            ),
+            needs: state.needs.map(n =>
+              n.id === pledge.needId
+                ? { ...n, quantityPledged: Math.max(0, n.quantityPledged - pledge.quantity) }
+                : n
+            ),
+          }));
+          get().addStrike(pledge.donorId);
+          get().showToast('Donation rejected. Quantity returned to needs pool.', 'error');
+          return { success: true };
+        }
+
+        return { success: false, error: 'Invalid verification type' };
+      },
+
+      // Look up pledge by verification code
+      findPledgeByCode: (code) => {
+        const { pledges } = get();
+        return pledges.find(p => p.verificationCode === code && p.status === 'reserved');
+      },
+
+      // Look up pledge by QR data
+      findPledgeByQR: (qrData) => {
+        const { pledges } = get();
+        return pledges.find(p => p.qrData === qrData && p.status === 'reserved');
+      },
+
+      // Fallback: search by phone or name
+      findPledgesByDonorSearch: (searchTerm) => {
+        const { donors, pledges } = get();
+        const term = searchTerm.toLowerCase();
+        const matchedDonors = donors.filter(d =>
+          d.phone.includes(term) || d.name.toLowerCase().includes(term)
+        );
+        const donorIds = matchedDonors.map(d => d.id);
+        return pledges.filter(p => donorIds.includes(p.donorId) && p.status === 'reserved');
+      },
+
+      // ═══════════════════════════════════════════════
+      // EXPIRATION SYSTEM
+      // ═══════════════════════════════════════════════
+
+      expirePledges: () => {
+        const { pledges, needs } = get();
+        const now = new Date();
+        let expiredCount = 0;
+
+        const updatedPledges = pledges.map(p => {
+          if (p.status === 'reserved' && new Date(p.expiresAt) <= now) {
+            expiredCount++;
+            return { ...p, status: 'expired' };
+          }
+          return p;
+        });
+
+        if (expiredCount > 0) {
+          // Calculate how much to return to each need
+          const returnsPerNeed = {};
+          pledges.forEach(p => {
+            if (p.status === 'reserved' && new Date(p.expiresAt) <= now) {
+              returnsPerNeed[p.needId] = (returnsPerNeed[p.needId] || 0) + p.quantity;
+            }
+          });
+
+          const updatedNeeds = needs.map(n => {
+            if (returnsPerNeed[n.id]) {
+              return { ...n, quantityPledged: Math.max(0, n.quantityPledged - returnsPerNeed[n.id]) };
+            }
+            return n;
+          });
+
+          // Add strikes for expired pledges
+          const expiredDonorIds = pledges
+            .filter(p => p.status === 'reserved' && new Date(p.expiresAt) <= now)
+            .map(p => p.donorId);
+
+          set({ pledges: updatedPledges, needs: updatedNeeds });
+
+          // Add strikes for each expired pledge
+          const uniqueDonorIds = [...new Set(expiredDonorIds)];
+          uniqueDonorIds.forEach(donorId => get().addStrike(donorId));
+
+          if (expiredCount > 0) {
+            get().showToast(`${expiredCount} pledge(s) expired. Quantities returned to pool.`, 'warning');
           }
         }
-        set({ isOffline: !isOffline });
       },
 
-      queueAction: (action) => set((state) => ({
-        actionQueue: [...state.actionQueue, { id: Date.now(), ...action }]
-      })),
+      // ═══════════════════════════════════════════════
+      // STRIKE SYSTEM
+      // ═══════════════════════════════════════════════
 
-      pledgeNeed: (needId, amount) => set((state) => ({
-        needs: state.needs.map(n => n.id === needId ? { ...n, pledged: n.pledged + amount } : n)
-      })),
-
-      claimTask: (taskId) => set((state) => ({
-        tasks: state.tasks.map(t => t.id === taskId ? { ...t, status: "Claimed" } : t)
-      })),
-
-      addDonation: (donation) => set((state) => ({
-        donations: [...state.donations, { id: `don-${Date.now()}-${Math.floor(Math.random() * 1000)}`, ...donation, status: 'Pending QR Scan' }]
-      })),
-
-      markDelivered: (qrId) => set((state) => {
-        const donation = state.donations.find(d => d.id === qrId);
-        if (!donation) return state;
-        return {
-          donations: state.donations.map(d => d.id === qrId ? { ...d, status: 'Delivered' } : d),
-          needs: state.needs.map(n => n.id === donation.needId ? { ...n, delivered: n.delivered + donation.amount, pledged: Math.max(0, n.pledged - donation.amount) } : n),
-        };
-      }),
-
-      addFeedback: (feedback) => set((state) => ({
-        feedbacks: [...state.feedbacks, { id: Date.now(), ...feedback }]
-      })),
-
-      // ── Coordinator: Supply Requests ───────────
-      submitSupplyRequest: (request) => {
-        const newRequest = {
-          id: `req-${Date.now()}`,
-          ...request,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-        };
+      addStrike: (donorId) => {
         set(state => ({
-          supplyRequests: [...state.supplyRequests, newRequest]
-        }));
-        return { success: true };
-      },
-
-      // ── Coordinator: Urgent Alerts ─────────────
-      broadcastUrgentAlert: (alert) => {
-        const newAlert = {
-          id: `alert-${Date.now()}`,
-          ...alert,
-          createdAt: new Date().toISOString(),
-        };
-        set(state => ({
-          urgentAlerts: [newAlert, ...state.urgentAlerts]
+          donors: state.donors.map(d => {
+            if (d.id !== donorId) return d;
+            const newStrikes = d.strikes + 1;
+            let newStatus = d.status;
+            if (newStrikes >= 3) newStatus = 'blocked';
+            else if (newStrikes >= 2) newStatus = 'suspended';
+            return { ...d, strikes: newStrikes, status: newStatus };
+          }),
         }));
       },
 
-      // ── Coordinator: Update Center ─────────────
-      updateCenter: (centerId, updates) => set(state => ({
-        centers: state.centers.map(c => c.id === centerId ? { ...c, ...updates } : c)
-      })),
+      // ═══════════════════════════════════════════════
+      // DONOR FEATURES
+      // ═══════════════════════════════════════════════
 
-      // ── Multi-tier Inventory Approvals ─────────
-      submitPhysicalCount: (report) => {
-        const newReport = {
-          id: `inv-rep-${Date.now()}`,
-          ...report,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-        };
+      toggleAnonymous: (donorId) => {
         set(state => ({
-          inventoryReports: [...state.inventoryReports, newReport]
+          donors: state.donors.map(d =>
+            d.id === donorId ? { ...d, isAnonymous: !d.isAnonymous } : d
+          ),
+          currentUser: state.currentUser?.id === donorId
+            ? { ...state.currentUser, isAnonymous: !state.currentUser.isAnonymous }
+            : state.currentUser,
         }));
-        return { success: true };
       },
 
-      approvePhysicalCount: (reportId) => {
-        set(state => {
-          const report = state.inventoryReports.find(r => r.id === reportId);
-          if (!report) return state;
-
-          const updatedInventory = state.inventory.map(cat =>
-            cat.id === report.categoryId
-              ? { ...cat, items: cat.items.map(item => item.name === report.itemName ? { ...item, current: report.newCurrent } : item) }
-              : cat
-          );
-
-          return {
-            inventoryReports: state.inventoryReports.map(r => r.id === reportId ? { ...r, status: 'approved' } : r),
-            inventory: updatedInventory
-          };
-        });
+      // Get donor's pledges
+      getDonorPledges: (donorId) => {
+        const { pledges } = get();
+        return pledges.filter(p => p.donorId === donorId);
       },
 
-      rejectPhysicalCount: (reportId) => set(state => ({
-        inventoryReports: state.inventoryReports.map(r => r.id === reportId ? { ...r, status: 'rejected' } : r)
-      })),
-
-      // ── Cross-Center Resource Sharing ──────────
-      transferSurplus: (transferData) => {
-        // transferData: { fromCenterId, toCenterId, categoryId, itemName, amount }
-        set(state => {
-          // Deduct from current inventory (assuming current inventory represents 'fromCenter')
-          const updatedInventory = state.inventory.map(cat =>
-            cat.id === transferData.categoryId
-              ? { ...cat, items: cat.items.map(item => item.name === transferData.itemName ? { ...item, current: item.current - transferData.amount } : item) }
-              : cat
-          );
-          return { inventory: updatedInventory };
-        });
-        get().showToast(`Successfully transferred ${transferData.amount}x ${transferData.itemName} to target center.`);
+      // Get donor's donation history
+      getDonorHistory: (donorId) => {
+        const { donationHistory } = get();
+        return donationHistory.filter(h => h.donorId === donorId);
       },
 
-      // ── Financial Ledger ───────────────────────
-      addCashDonation: (amount) => set(state => ({
-        financialLedger: {
-          ...state.financialLedger,
-          totalCollected: state.financialLedger.totalCollected + amount
-        }
-      })),
+      // Get donor by ID
+      getDonor: (donorId) => {
+        const { donors } = get();
+        return donors.find(d => d.id === donorId);
+      },
 
-      addExpenditure: (exp) => set(state => ({
-        financialLedger: {
-          ...state.financialLedger,
-          expenditures: [...state.financialLedger.expenditures, { id: `exp-${Date.now()}`, ...exp }]
-        }
-      })),
+      // ═══════════════════════════════════════════════
+      // PLEDGE MODAL
+      // ═══════════════════════════════════════════════
+
+      openPledgeModal: (needId) => set({ pledgeModal: { needId } }),
+      closePledgeModal: () => set({ pledgeModal: null }),
     }),
     {
-      name: 'damayan-storage',
+      name: 'damayan-match-storage',
       partialize: (state) => ({
-        users: state.users,
+        barangay: state.barangay,
         currentUser: state.currentUser,
-        appeals: state.appeals,
-        centers: state.centers,
+        donors: state.donors,
         needs: state.needs,
-        tasks: state.tasks,
-        inventory: state.inventory,
-        financialLedger: state.financialLedger,
-        inventoryReports: state.inventoryReports,
-        actionQueue: state.actionQueue,
-        donations: state.donations,
-        feedbacks: state.feedbacks,
-        supplyRequests: state.supplyRequests,
-        urgentAlerts: state.urgentAlerts,
+        pledges: state.pledges,
+        donationHistory: state.donationHistory,
       }),
     }
   )

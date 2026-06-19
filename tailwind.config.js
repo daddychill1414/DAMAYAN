@@ -7,10 +7,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "#2E4036", // Moss
-        accent: "#CC5833", // Clay
-        background: "#F2F0E9", // Cream
-        dark: "#1A1A1A", // Charcoal
+        primary: "#1E3A5F", // Deep Blue
+        accent: "#F59E0B",  // Warm Orange
+        background: "#F8FAFC", // Soft White
+        dark: "#334155", // Dark Slate
+        neutralGray: "#6B7280", // Neutral Gray
+        urgency: {
+          critical: "#DC2626", // Red
+          warning: "#FACC15", // Yellow
+          stable: "#16A34A" // Green
+        }
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'sans-serif'],

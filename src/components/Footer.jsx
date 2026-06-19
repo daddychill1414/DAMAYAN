@@ -5,19 +5,15 @@ export const Footer = () => {
     <footer className="bg-dark text-background rounded-t-[4rem] px-8 md:px-16 pt-24 pb-12 mt-12 relative z-20">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
         <div className="col-span-1 md:col-span-2">
-          <div className="font-sans font-bold text-3xl mb-4 text-background">Damayan App</div>
-          <p className="font-outfit text-background/60 max-w-sm text-lg">Disaster relief coordination powered by intelligent routing and real-time data.</p>
+          <div className="font-sans font-bold text-3xl mb-4 text-background">Damayan Match</div>
+          <p className="font-outfit text-background/60 max-w-sm text-lg">Barangay-Based Relief Goods Matching System. Connecting barangay evacuation centers directly with donors.</p>
         </div>
         <div>
           <h4 className="font-mono text-accent text-sm mb-6 uppercase tracking-widest">Navigation</h4>
           <ul className="space-y-4 font-outfit text-background/80">
             <li><Link to="/needs" className="hover:text-accent transition-colors">Live Needs Board</Link></li>
-            <li><Link to="/donate" className="hover:text-accent transition-colors">Smart Match</Link></li>
-            <li><Link to="/map" className="hover:text-accent transition-colors">Map View</Link></li>
-            <li><Link to="/volunteer" className="hover:text-accent transition-colors">Volunteer Hub</Link></li>
-            <li><Link to="/dashboard" className="hover:text-accent transition-colors">Dashboard</Link></li>
-            <li><Link to="/qr" className="hover:text-accent transition-colors">Verify Drop-Off</Link></li>
-            <li><Link to="/feedback" className="hover:text-accent transition-colors">Feedback</Link></li>
+            <li><Link to="/login" className="hover:text-accent transition-colors">Sign In</Link></li>
+            <li><Link to="/register" className="hover:text-accent transition-colors">Register</Link></li>
           </ul>
         </div>
         <div>
