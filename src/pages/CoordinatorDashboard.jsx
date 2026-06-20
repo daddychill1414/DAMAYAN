@@ -41,11 +41,11 @@ export const CoordinatorDashboard = () => {
             <span className="font-mono text-[10px] tracking-widest uppercase text-accent">Coordinator Operations</span>
           </div>
           <h1 className="font-sans font-bold text-4xl text-primary mb-2">{barangay.name}</h1>
-          <p className="font-outfit text-dark/60">{barangay.coordinatorName} • {barangay.position}</p>
+          <p className="font-outfit text-neutralGray">{barangay.coordinatorName} • {barangay.position}</p>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-8 scrollbar-hide border-b border-primary/10">
+        <div className="flex gap-2 overflow-x-auto pb-4 mb-8 scrollbar-hide border-b border-neutralGray/10">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -53,7 +53,7 @@ export const CoordinatorDashboard = () => {
               className={`px-5 py-3 rounded-t-xl font-outfit text-sm font-semibold transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-primary text-background'
-                  : 'bg-transparent text-primary/60 hover:bg-primary/5'
+                  : 'bg-transparent text-neutralGray hover:bg-neutralGray/10'
               }`}
             >
               {tab.label}
@@ -67,44 +67,44 @@ export const CoordinatorDashboard = () => {
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-3xl border border-primary/10 shadow-sm">
+              <div className="bg-white p-6 rounded-3xl border border-neutralGray/20 shadow-sm">
                 <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4">
                   <Package size={24} />
                 </div>
                 <h3 className="font-mono text-4xl font-bold text-primary mb-1">{activeNeeds.length}</h3>
-                <p className="font-outfit text-sm text-dark/60 uppercase tracking-wider">Active Needs</p>
+                <p className="font-outfit text-sm text-neutralGray uppercase tracking-wider">Active Needs</p>
               </div>
               
-              <div className="bg-white p-6 rounded-3xl border border-primary/10 shadow-sm">
-                <div className="w-12 h-12 bg-green-500/10 rounded-2xl flex items-center justify-center text-green-600 mb-4">
+              <div className="bg-white p-6 rounded-3xl border border-neutralGray/20 shadow-sm">
+                <div className="w-12 h-12 bg-urgency-stable/10 rounded-2xl flex items-center justify-center text-urgency-stable mb-4">
                   <CheckCircle size={24} />
                 </div>
                 <h3 className="font-mono text-4xl font-bold text-primary mb-1">{verifiedPledges.length}</h3>
-                <p className="font-outfit text-sm text-dark/60 uppercase tracking-wider">Verified Deliveries</p>
+                <p className="font-outfit text-sm text-neutralGray uppercase tracking-wider">Verified Deliveries</p>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-primary/10 shadow-sm">
-                <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-600 mb-4">
+              <div className="bg-white p-6 rounded-3xl border border-neutralGray/20 shadow-sm">
+                <div className="w-12 h-12 bg-urgency-warning/10 rounded-2xl flex items-center justify-center text-urgency-warning mb-4">
                   <Clock size={24} />
                 </div>
                 <h3 className="font-mono text-4xl font-bold text-primary mb-1">{pendingPledges.length}</h3>
-                <p className="font-outfit text-sm text-dark/60 uppercase tracking-wider">Pending Pledges</p>
+                <p className="font-outfit text-sm text-neutralGray uppercase tracking-wider">Pending Pledges</p>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-red-500/20 shadow-sm relative overflow-hidden">
-                <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 mb-4">
+              <div className="bg-white p-6 rounded-3xl border border-urgency-critical/20 shadow-sm relative overflow-hidden">
+                <div className="w-12 h-12 bg-urgency-critical/10 rounded-2xl flex items-center justify-center text-urgency-critical mb-4">
                   <AlertTriangle size={24} />
                 </div>
                 <h3 className="font-mono text-4xl font-bold text-primary mb-1">{expiredPledges.length}</h3>
-                <p className="font-outfit text-sm text-dark/60 uppercase tracking-wider">Expired / No-Show</p>
-                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-red-500/5 rounded-full blur-2xl"></div>
+                <p className="font-outfit text-sm text-neutralGray uppercase tracking-wider">Expired / No-Show</p>
+                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-urgency-critical/5 rounded-full blur-2xl"></div>
               </div>
             </div>
           )}
 
           {/* POST NEED TAB */}
           {activeTab === 'post' && (
-            <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2.5rem] border border-primary/10 shadow-xl">
+            <div className="max-w-2xl mx-auto bg-white p-8 rounded-[2.5rem] border border-neutralGray/20 shadow-xl">
               <h2 className="font-sans font-bold text-2xl text-primary mb-6">Post New Shortage</h2>
               <form onSubmit={handlePostNeed} className="space-y-5">
                 <div>
@@ -115,7 +115,7 @@ export const CoordinatorDashboard = () => {
                     value={newNeed.itemName}
                     onChange={e => setNewNeed({...newNeed, itemName: e.target.value})}
                     placeholder="e.g. 10L Drinking Water"
-                    className="w-full bg-background border border-primary/10 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
+                    className="w-full bg-background border border-neutralGray/20 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-5">
@@ -124,7 +124,7 @@ export const CoordinatorDashboard = () => {
                     <select
                       value={newNeed.category}
                       onChange={e => setNewNeed({...newNeed, category: e.target.value})}
-                      className="w-full bg-background border border-primary/10 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
+                      className="w-full bg-background border border-neutralGray/20 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
                     >
                       <option>Food</option>
                       <option>Water</option>
@@ -143,7 +143,7 @@ export const CoordinatorDashboard = () => {
                       value={newNeed.quantity}
                       onChange={e => setNewNeed({...newNeed, quantity: e.target.value})}
                       placeholder="e.g. 50"
-                      className="w-full bg-background border border-primary/10 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
+                      className="w-full bg-background border border-neutralGray/20 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
                     />
                   </div>
                 </div>
@@ -158,7 +158,7 @@ export const CoordinatorDashboard = () => {
                         className={`py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-colors border ${
                           newNeed.urgency === u 
                             ? 'bg-primary text-background border-primary'
-                            : 'bg-transparent text-primary/60 border-primary/10 hover:border-primary/30'
+                            : 'bg-transparent text-neutralGray border-neutralGray/20 hover:border-neutralGray/40'
                         }`}
                       >
                         {u}
@@ -168,8 +168,8 @@ export const CoordinatorDashboard = () => {
                 </div>
                 <div>
                   <label className="block font-outfit text-sm font-semibold text-primary mb-2">Drop-Off Location</label>
-                  <div className="flex items-center gap-3 bg-background border border-primary/10 rounded-xl px-4 py-3 focus-within:border-accent">
-                    <MapPin size={16} className="text-primary/40" />
+                  <div className="flex items-center gap-3 bg-background border border-neutralGray/20 rounded-xl px-4 py-3 focus-within:border-accent">
+                    <MapPin size={16} className="text-neutralGray" />
                     <input
                       type="text"
                       required
@@ -184,7 +184,7 @@ export const CoordinatorDashboard = () => {
                   <button type="submit" className="w-full flex items-center justify-center gap-2 bg-primary text-background py-4 rounded-xl font-outfit font-bold text-sm hover:shadow-lg transition-all">
                     <Plus size={18} /> Publish Need
                   </button>
-                  <p className="font-outfit text-[10px] text-dark/40 text-center mt-3">
+                  <p className="font-outfit text-[10px] text-neutralGray text-center mt-3">
                     Ensure physical storage space is available before posting.
                   </p>
                 </div>
@@ -194,15 +194,15 @@ export const CoordinatorDashboard = () => {
 
           {/* NEEDS TRACKER TAB */}
           {activeTab === 'needs' && (
-            <div className="bg-white rounded-3xl border border-primary/10 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-3xl border border-neutralGray/20 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left font-outfit text-sm">
                   <thead>
-                    <tr className="bg-background/50 border-b border-primary/5">
-                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-dark/40 tracking-wider font-semibold">Item & Status</th>
-                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-dark/40 tracking-wider font-semibold">Urgency</th>
-                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-dark/40 tracking-wider font-semibold">Progress</th>
-                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-dark/40 tracking-wider font-semibold text-right">Actions</th>
+                    <tr className="bg-background/50 border-b border-neutralGray/10">
+                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-neutralGray tracking-wider font-semibold">Item & Status</th>
+                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-neutralGray tracking-wider font-semibold">Urgency</th>
+                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-neutralGray tracking-wider font-semibold">Progress</th>
+                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-neutralGray tracking-wider font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-primary/5">
@@ -214,7 +214,7 @@ export const CoordinatorDashboard = () => {
                         <tr key={need.id} className={isFulfilled ? 'bg-background/30 opacity-70' : 'hover:bg-background/30 transition-colors'}>
                           <td className="px-6 py-4">
                             <p className="font-sans font-bold text-primary text-base">{need.itemName}</p>
-                            <p className="font-mono text-[10px] text-dark/40 uppercase">{need.category} • {need.status}</p>
+                            <p className="font-mono text-[10px] text-neutralGray uppercase">{need.category} • {need.status}</p>
                           </td>
                           <td className="px-6 py-4">
                             <UrgencyBadge urgency={need.urgency} size="small" />
@@ -225,8 +225,8 @@ export const CoordinatorDashboard = () => {
                                 <span>{need.quantityDelivered} / {need.quantityNeeded}</span>
                                 {remaining > 0 && <span className="text-accent">{remaining} left</span>}
                               </div>
-                              <div className="w-full bg-primary/10 h-1.5 rounded-full overflow-hidden flex">
-                                <div className="h-full bg-green-500" style={{ width: `${Math.min(100, (need.quantityDelivered / need.quantityNeeded) * 100)}%` }}></div>
+                              <div className="w-full bg-neutralGray/10 h-1.5 rounded-full overflow-hidden flex">
+                                <div className="h-full bg-urgency-stable" style={{ width: `${Math.min(100, (need.quantityDelivered / need.quantityNeeded) * 100)}%` }}></div>
                                 <div className="h-full bg-accent" style={{ width: `${Math.min(100, (need.quantityPledged / need.quantityNeeded) * 100)}%` }}></div>
                               </div>
                             </div>
@@ -243,7 +243,7 @@ export const CoordinatorDashboard = () => {
                                 </button>
                                 <button 
                                   onClick={() => closeNeed(need.id)}
-                                  className="px-3 py-1.5 bg-red-500/5 text-red-500 rounded-lg font-bold text-[10px] uppercase hover:bg-red-500/10"
+                                  className="px-3 py-1.5 bg-urgency-critical/5 text-urgency-critical rounded-lg font-bold text-[10px] uppercase hover:bg-urgency-critical/10"
                                 >
                                   Close
                                 </button>
@@ -261,20 +261,20 @@ export const CoordinatorDashboard = () => {
 
           {/* HISTORY TAB */}
           {activeTab === 'history' && (
-            <div className="bg-white rounded-3xl border border-primary/10 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-3xl border border-neutralGray/20 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left font-outfit text-sm">
                   <thead>
-                    <tr className="bg-background/50 border-b border-primary/5">
-                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-dark/40 tracking-wider font-semibold">Time</th>
-                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-dark/40 tracking-wider font-semibold">Item & Qty</th>
-                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-dark/40 tracking-wider font-semibold">Donor</th>
-                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-dark/40 tracking-wider font-semibold">Method</th>
+                    <tr className="bg-background/50 border-b border-neutralGray/10">
+                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-neutralGray tracking-wider font-semibold">Time</th>
+                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-neutralGray tracking-wider font-semibold">Item & Qty</th>
+                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-neutralGray tracking-wider font-semibold">Donor</th>
+                      <th className="px-6 py-4 font-mono text-[10px] uppercase text-neutralGray tracking-wider font-semibold">Method</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-primary/5">
+                  <tbody className="divide-y divide-neutralGray/10">
                     {donationHistory.length === 0 ? (
-                      <tr><td colSpan="4" className="text-center py-8 text-dark/40">No verification history yet.</td></tr>
+                      <tr><td colSpan="4" className="text-center py-8 text-neutralGray">No verification history yet.</td></tr>
                     ) : (
                       [...donationHistory].reverse().map(h => {
                         const date = new Date(h.verifiedAt);
@@ -282,18 +282,18 @@ export const CoordinatorDashboard = () => {
                           <tr key={h.id} className="hover:bg-background/30 transition-colors">
                             <td className="px-6 py-4">
                               <p className="font-mono text-xs text-primary">{date.toLocaleDateString()}</p>
-                              <p className="font-mono text-[10px] text-dark/40">{date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                              <p className="font-mono text-[10px] text-neutralGray">{date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                             </td>
                             <td className="px-6 py-4">
                               <p className="font-sans font-bold text-primary">{h.quantity}x</p>
-                              <p className="text-dark/60 text-xs">{h.itemName}</p>
+                              <p className="text-neutralGray text-xs">{h.itemName}</p>
                             </td>
                             <td className="px-6 py-4 text-xs font-semibold text-primary">
                               {h.donorId.startsWith('anon') ? 'Anonymous' : h.donorId} {/* Ideally join with donor table */}
                             </td>
                             <td className="px-6 py-4">
                               <span className={`px-2 py-1 rounded-md font-mono text-[9px] uppercase font-bold ${
-                                h.verifiedBy === 'qr' ? 'bg-green-500/10 text-green-600' : 'bg-amber-500/10 text-amber-600'
+                                h.verifiedBy === 'qr' ? 'bg-urgency-stable/10 text-urgency-stable' : 'bg-urgency-warning/10 text-urgency-warning'
                               }`}>
                                 {h.verifiedBy}
                               </span>
@@ -311,12 +311,12 @@ export const CoordinatorDashboard = () => {
           {/* QR TAB */}
           {activeTab === 'qr' && (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-primary/10 text-center max-w-sm w-full relative overflow-hidden">
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-neutralGray/20 text-center max-w-sm w-full relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-accent"></div>
                 <h2 className="font-sans font-bold text-2xl text-primary mb-2">Barangay QR</h2>
-                <p className="font-outfit text-sm text-dark/60 mb-8">Have donors scan this to register as a community member.</p>
+                <p className="font-outfit text-sm text-neutralGray mb-8">Have donors scan this to register as a community member.</p>
                 
-                <div className="inline-block p-4 bg-background rounded-2xl border border-primary/10 mb-6">
+                <div className="inline-block p-4 bg-background rounded-2xl border border-neutralGray/20 mb-6">
                   <QRCodeSVG 
                     value={barangay.registrationQR}
                     size={200}
@@ -325,8 +325,8 @@ export const CoordinatorDashboard = () => {
                   />
                 </div>
                 
-                <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-                  <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Manual Code</p>
+                <div className="bg-neutralGray/5 rounded-xl p-4 border border-neutralGray/10">
+                  <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Manual Code</p>
                   <p className="font-mono text-xl font-bold text-primary tracking-widest">{barangay.id.split('-')[1].toUpperCase()}</p>
                 </div>
               </div>

@@ -37,18 +37,18 @@ export const DonorDashboard = () => {
               <span className="font-mono text-[10px] tracking-widest uppercase text-accent">Donor Portal</span>
             </div>
             <h1 className="font-sans font-bold text-4xl text-primary mb-2">Hello, {currentUser.name}</h1>
-            <p className="font-outfit text-dark/60">Manage your pledges and view your impact.</p>
+            <p className="font-outfit text-neutralGray">Manage your pledges and view your impact.</p>
           </div>
           
           {/* Quick Stats */}
           <div className="flex gap-4">
-            <div className="bg-white px-6 py-4 rounded-2xl border border-primary/10 shadow-sm text-center">
-              <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Items Delivered</p>
-              <p className="font-sans font-bold text-3xl text-green-600">{totalDelivered}</p>
+            <div className="bg-white px-6 py-4 rounded-2xl border border-neutralGray/20 shadow-sm text-center">
+              <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Items Delivered</p>
+              <p className="font-sans font-bold text-3xl text-urgency-stable">{totalDelivered}</p>
             </div>
-            <div className="bg-white px-6 py-4 rounded-2xl border border-primary/10 shadow-sm text-center">
-              <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Strikes</p>
-              <p className={`font-sans font-bold text-3xl ${currentUser.strikes > 0 ? 'text-red-500' : 'text-primary'}`}>
+            <div className="bg-white px-6 py-4 rounded-2xl border border-neutralGray/20 shadow-sm text-center">
+              <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Strikes</p>
+              <p className={`font-sans font-bold text-3xl ${currentUser.strikes > 0 ? 'text-urgency-critical' : 'text-primary'}`}>
                 {currentUser.strikes}/3
               </p>
             </div>
@@ -56,7 +56,7 @@ export const DonorDashboard = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-8 scrollbar-hide border-b border-primary/10">
+        <div className="flex gap-2 overflow-x-auto pb-4 mb-8 scrollbar-hide border-b border-neutralGray/10">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -64,7 +64,7 @@ export const DonorDashboard = () => {
               className={`px-5 py-3 rounded-t-xl font-outfit text-sm font-semibold transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-primary text-background'
-                  : 'bg-transparent text-primary/60 hover:bg-primary/5'
+                  : 'bg-transparent text-neutralGray hover:bg-neutralGray/10'
               }`}
             >
               {tab.label}
@@ -79,10 +79,10 @@ export const DonorDashboard = () => {
           {activeTab === 'active' && (
             <div className="space-y-6">
               {activePledges.length === 0 ? (
-                <div className="bg-white rounded-3xl p-12 text-center border border-primary/10 shadow-sm">
-                  <Heart size={48} className="mx-auto text-primary/20 mb-4" />
+                <div className="bg-white rounded-3xl p-12 text-center border border-neutralGray/20 shadow-sm">
+                  <Heart size={48} className="mx-auto text-neutralGray/30 mb-4" />
                   <h3 className="font-sans font-bold text-2xl text-primary mb-2">No Active Pledges</h3>
-                  <p className="font-outfit text-dark/60 mb-6">You don't have any items reserved for delivery right now.</p>
+                  <p className="font-outfit text-neutralGray mb-6">You don't have any items reserved for delivery right now.</p>
                   <Link to="/needs" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-background rounded-xl font-outfit font-bold text-sm hover:bg-primary/90 transition-colors">
                     View Needs Board <ArrowRight size={16} />
                   </Link>
@@ -92,11 +92,11 @@ export const DonorDashboard = () => {
                   {activePledges.map(pledge => {
                     const need = needs.find(n => n.id === pledge.needId);
                     return (
-                      <div key={pledge.id} className="bg-white rounded-3xl p-6 border border-primary/10 shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
+                      <div key={pledge.id} className="bg-white rounded-3xl p-6 border border-neutralGray/20 shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
                         <div className="absolute top-0 left-0 w-full h-1.5 bg-accent"></div>
                         
                         <div className="mb-6">
-                          <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Item to Deliver</p>
+                          <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Item to Deliver</p>
                           <h3 className="font-sans font-bold text-2xl text-primary line-clamp-1">{need?.itemName || 'Unknown Item'}</h3>
                           <p className="font-outfit text-sm font-semibold text-accent">{pledge.quantity} units</p>
                         </div>
@@ -119,7 +119,7 @@ export const DonorDashboard = () => {
             <div className="space-y-4">
               {pastPledges.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="font-outfit text-dark/40">No past pledges found.</p>
+                  <p className="font-outfit text-neutralGray">No past pledges found.</p>
                 </div>
               ) : (
                 pastPledges.map(pledge => {
@@ -130,38 +130,38 @@ export const DonorDashboard = () => {
                   
                   return (
                     <div key={pledge.id} className={`flex flex-col md:flex-row md:items-center justify-between p-5 rounded-2xl border ${
-                      isVerified ? 'bg-green-500/5 border-green-500/20' : 
-                      isExpired ? 'bg-amber-500/5 border-amber-500/20' :
-                      'bg-red-500/5 border-red-500/20'
+                      isVerified ? 'bg-urgency-stable/5 border-urgency-stable/20' : 
+                      isExpired ? 'bg-urgency-warning/5 border-urgency-warning/20' :
+                      'bg-urgency-critical/5 border-urgency-critical/20'
                     }`}>
                       <div className="flex items-center gap-4 mb-3 md:mb-0">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          isVerified ? 'bg-green-500/20 text-green-600' :
-                          isExpired ? 'bg-amber-500/20 text-amber-600' :
-                          'bg-red-500/20 text-red-600'
+                          isVerified ? 'bg-urgency-stable/20 text-urgency-stable' :
+                          isExpired ? 'bg-urgency-warning/20 text-urgency-warning' :
+                          'bg-urgency-critical/20 text-urgency-critical'
                         }`}>
                           {isVerified ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
                         </div>
                         <div>
                           <p className="font-sans font-bold text-primary">{pledge.quantity}x {need?.itemName || 'Item'}</p>
-                          <p className="font-mono text-[10px] text-dark/40">{new Date(pledge.createdAt).toLocaleDateString()}</p>
+                          <p className="font-mono text-[10px] text-neutralGray">{new Date(pledge.createdAt).toLocaleDateString()}</p>
                         </div>
                       </div>
                       <div className="text-right">
                         <span className={`inline-flex px-3 py-1 rounded-full font-mono text-[10px] uppercase font-bold tracking-wider ${
-                          isVerified ? 'bg-green-500/20 text-green-700' :
-                          isExpired ? 'bg-amber-500/20 text-amber-700' :
-                          'bg-red-500/20 text-red-700'
+                          isVerified ? 'bg-urgency-stable/20 text-urgency-stable' :
+                          isExpired ? 'bg-urgency-warning/20 text-urgency-warning' :
+                          'bg-urgency-critical/20 text-urgency-critical'
                         }`}>
                           {pledge.status.replace('_', ' ')}
                         </span>
                         {isVerified && pledge.status === 'verified_partial' && (
-                          <p className="font-outfit text-xs text-dark/50 mt-1">
+                          <p className="font-outfit text-xs text-neutralGray mt-1">
                             {pledge.actualDelivered} of {pledge.quantity} delivered
                           </p>
                         )}
                         {isExpired && (
-                          <p className="font-outfit text-xs text-red-500 mt-1 flex items-center justify-end gap-1">
+                          <p className="font-outfit text-xs text-urgency-critical mt-1 flex items-center justify-end gap-1">
                             <AlertTriangle size={12} /> Strike added
                           </p>
                         )}
@@ -175,38 +175,38 @@ export const DonorDashboard = () => {
 
           {/* PROFILE */}
           {activeTab === 'profile' && (
-            <div className="max-w-2xl bg-white rounded-3xl p-8 border border-primary/10 shadow-sm">
+            <div className="max-w-2xl bg-white rounded-3xl p-8 border border-neutralGray/20 shadow-sm">
               <h2 className="font-sans font-bold text-2xl text-primary mb-6">Account Settings</h2>
               
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 pb-6 border-b border-primary/5">
+                <div className="grid grid-cols-2 gap-4 pb-6 border-b border-neutralGray/10">
                   <div>
-                    <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Name</p>
+                    <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Name</p>
                     <p className="font-outfit font-semibold text-primary">{currentUser.name}</p>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Phone</p>
+                    <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Phone</p>
                     <p className="font-outfit font-semibold text-primary">{currentUser.phone}</p>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Account Type</p>
+                    <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Account Type</p>
                     <span className="inline-block px-2 py-1 bg-primary/5 text-primary rounded font-mono text-[10px] uppercase font-bold">
                       {currentUser.type}
                     </span>
                   </div>
                   <div>
-                    <p className="font-mono text-[10px] text-dark/40 uppercase tracking-wider mb-1">Member Since</p>
+                    <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Member Since</p>
                     <p className="font-outfit font-semibold text-primary">{new Date(currentUser.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-background rounded-2xl border border-primary/5">
+                <div className="flex items-center justify-between p-4 bg-background rounded-2xl border border-neutralGray/10">
                   <div>
                     <h4 className="font-sans font-bold text-primary flex items-center gap-2">
                       {currentUser.isAnonymous ? <EyeOff size={16} className="text-accent" /> : <Eye size={16} />}
                       Anonymous Mode
                     </h4>
-                    <p className="font-outfit text-xs text-dark/50 mt-1 max-w-xs">
+                    <p className="font-outfit text-xs text-neutralGray mt-1 max-w-xs">
                       When active, your name will be hidden on the public needs board. The coordinator can still see your details.
                     </p>
                   </div>
@@ -218,18 +218,18 @@ export const DonorDashboard = () => {
                   </button>
                 </div>
 
-                <div className="p-4 bg-red-500/5 rounded-2xl border border-red-500/10">
-                  <h4 className="font-sans font-bold text-red-600 flex items-center gap-2">
+                <div className="p-4 bg-urgency-critical/5 rounded-2xl border border-urgency-critical/10">
+                  <h4 className="font-sans font-bold text-urgency-critical flex items-center gap-2">
                     <AlertTriangle size={16} /> Strike System Status
                   </h4>
                   <div className="flex items-center gap-2 mt-3">
                     {[1, 2, 3].map(strike => (
                       <div key={strike} className={`flex-1 h-2 rounded-full ${
-                        strike <= currentUser.strikes ? 'bg-red-500' : 'bg-red-500/20'
+                        strike <= currentUser.strikes ? 'bg-urgency-critical' : 'bg-urgency-critical/20'
                       }`}></div>
                     ))}
                   </div>
-                  <p className="font-outfit text-xs text-red-600/80 mt-3">
+                  <p className="font-outfit text-xs text-urgency-critical/80 mt-3">
                     You have <strong>{currentUser.strikes}</strong> strike(s). Pledges that expire without delivery result in a strike. 3 strikes will restrict your account to prevent hoarding of needs.
                   </p>
                 </div>

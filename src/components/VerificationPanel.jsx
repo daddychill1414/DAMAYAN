@@ -66,24 +66,24 @@ export const VerificationPanel = () => {
       return (
         <div className="text-center py-8">
           <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-            verifyResult === 'reject' ? 'bg-red-500/10' : 'bg-green-500/10'
+            verifyResult === 'reject' ? 'bg-urgency-critical/10' : 'bg-urgency-stable/10'
           }`}>
             {verifyResult === 'reject'
-              ? <XCircle size={32} className="text-red-500" />
-              : <CheckCircle size={32} className="text-green-500" />
+              ? <XCircle size={32} className="text-urgency-critical" />
+              : <CheckCircle size={32} className="text-urgency-stable" />
             }
           </div>
           <h3 className="font-sans font-bold text-xl text-primary mb-1">
             {verifyResult === 'full' ? 'Fully Verified!' :
              verifyResult === 'partial' ? 'Partially Verified' : 'Rejected'}
           </h3>
-          <p className="font-outfit text-sm text-dark/60">Needs pool updated automatically</p>
+          <p className="font-outfit text-sm text-neutralGray">Needs pool updated automatically</p>
         </div>
       );
     }
 
     return (
-      <div className="mt-6 p-5 bg-white rounded-2xl border border-primary/10 shadow-sm">
+      <div className="mt-6 p-5 bg-white rounded-2xl border border-neutralGray/20 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-sans font-bold text-lg text-primary">Pledge Details</h4>
           <UrgencyBadge urgency={need?.urgency || 'stable'} size="small" />
@@ -93,24 +93,24 @@ export const VerificationPanel = () => {
           <div className="flex items-center gap-3 p-3 bg-background rounded-xl">
             <Package size={16} className="text-accent shrink-0" />
             <div>
-              <p className="font-outfit text-xs text-dark/50">Item</p>
+              <p className="font-outfit text-xs text-neutralGray">Item</p>
               <p className="font-outfit text-sm font-semibold text-primary">{need?.itemName || 'Unknown'}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-background rounded-xl">
-              <p className="font-outfit text-xs text-dark/50">Pledged Qty</p>
+              <p className="font-outfit text-xs text-neutralGray">Pledged Qty</p>
               <p className="font-mono text-xl font-bold text-primary">{pledge.quantity}</p>
             </div>
             <div className="p-3 bg-background rounded-xl">
-              <p className="font-outfit text-xs text-dark/50">Code</p>
+              <p className="font-outfit text-xs text-neutralGray">Code</p>
               <p className="font-mono text-sm font-bold text-accent">{pledge.verificationCode}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-background rounded-xl">
-            <User size={16} className="text-primary/60 shrink-0" />
+            <User size={16} className="text-neutralGray shrink-0" />
             <div>
-              <p className="font-outfit text-xs text-dark/50">Donor</p>
+              <p className="font-outfit text-xs text-neutralGray">Donor</p>
               <p className="font-outfit text-sm font-semibold text-primary">
                 {donor?.isAnonymous ? 'Anonymous Donor' : donor?.name || 'Unknown'}
               </p>
@@ -118,9 +118,9 @@ export const VerificationPanel = () => {
           </div>
           {donor && !donor.isAnonymous && (
             <div className="flex items-center gap-3 p-3 bg-background rounded-xl">
-              <Phone size={16} className="text-primary/60 shrink-0" />
+              <Phone size={16} className="text-neutralGray shrink-0" />
               <div>
-                <p className="font-outfit text-xs text-dark/50">Phone</p>
+                <p className="font-outfit text-xs text-neutralGray">Phone</p>
                 <p className="font-mono text-sm text-primary">{donor.phone}</p>
               </div>
             </div>
@@ -131,7 +131,7 @@ export const VerificationPanel = () => {
         <div className="space-y-3">
           <button
             onClick={() => handleVerify(pledge.id, 'full')}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-green-500 text-white rounded-xl font-outfit font-bold text-sm hover:bg-green-600 transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-urgency-stable text-white rounded-xl font-outfit font-bold text-sm hover:opacity-90 transition-colors"
           >
             <CheckCircle size={16} /> Full Match — {pledge.quantity} delivered
           </button>
@@ -144,11 +144,11 @@ export const VerificationPanel = () => {
               value={partialQty}
               onChange={(e) => setPartialQty(e.target.value)}
               placeholder="Actual qty"
-              className="flex-1 bg-background border border-primary/10 rounded-xl px-3 py-3 font-mono text-sm outline-none focus:border-amber-500"
+              className="flex-1 bg-background border border-neutralGray/20 rounded-xl px-3 py-3 font-mono text-sm outline-none focus:border-urgency-warning"
             />
             <button
               onClick={() => handleVerify(pledge.id, 'partial')}
-              className="flex items-center justify-center gap-2 px-5 py-3 bg-amber-500 text-white rounded-xl font-outfit font-bold text-sm hover:bg-amber-600 transition-colors whitespace-nowrap"
+              className="flex items-center justify-center gap-2 px-5 py-3 bg-urgency-warning text-white rounded-xl font-outfit font-bold text-sm hover:opacity-90 transition-colors whitespace-nowrap"
             >
               <AlertTriangle size={14} /> Partial
             </button>
@@ -156,7 +156,7 @@ export const VerificationPanel = () => {
 
           <button
             onClick={() => handleVerify(pledge.id, 'reject')}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-red-500/10 text-red-500 rounded-xl font-outfit font-bold text-sm hover:bg-red-500/20 transition-colors border border-red-500/20"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-urgency-critical/10 text-urgency-critical rounded-xl font-outfit font-bold text-sm hover:bg-urgency-critical/20 transition-colors border border-urgency-critical/20"
           >
             <XCircle size={16} /> Reject — Return to Pool
           </button>
@@ -176,7 +176,7 @@ export const VerificationPanel = () => {
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-outfit text-sm font-semibold transition-all ${
               activeTab === tab.id
                 ? 'bg-primary text-background shadow-lg'
-                : 'bg-primary/5 text-dark/60 hover:bg-primary/10'
+                : 'bg-neutralGray/10 text-neutralGray hover:bg-neutralGray/20'
             }`}
           >
             <tab.icon size={16} /> {tab.label}
@@ -187,13 +187,13 @@ export const VerificationPanel = () => {
       {/* QR Scan Tab */}
       {activeTab === 'qr' && (
         <div className="text-center py-12">
-          <div className="w-48 h-48 mx-auto mb-6 rounded-2xl border-2 border-dashed border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-3">
-            <QrCode size={48} className="text-primary/30" />
-            <p className="font-outfit text-xs text-dark/40">Camera scanner</p>
-            <p className="font-mono text-[9px] text-dark/30">(Simulated)</p>
+          <div className="w-48 h-48 mx-auto mb-6 rounded-2xl border-2 border-dashed border-neutralGray/20 bg-neutralGray/5 flex flex-col items-center justify-center gap-3">
+            <QrCode size={48} className="text-neutralGray/30" />
+            <p className="font-outfit text-xs text-neutralGray">Camera scanner</p>
+            <p className="font-mono text-[9px] text-neutralGray/80">(Simulated)</p>
           </div>
-          <p className="font-outfit text-sm text-dark/60 mb-4">Point camera at donor's QR code</p>
-          <p className="font-outfit text-xs text-dark/40">Or use Manual Code / Search tabs instead</p>
+          <p className="font-outfit text-sm text-neutralGray mb-4">Point camera at donor's QR code</p>
+          <p className="font-outfit text-xs text-neutralGray">Or use Manual Code / Search tabs instead</p>
         </div>
       )}
 
@@ -208,7 +208,7 @@ export const VerificationPanel = () => {
               onChange={(e) => { setCodeInput(e.target.value.toUpperCase()); setError(''); }}
               placeholder="DMY-XXXX"
               maxLength={8}
-              className="flex-1 bg-white border border-primary/10 rounded-xl px-4 py-3 font-mono text-lg font-bold text-primary text-center tracking-[0.2em] outline-none focus:border-accent uppercase"
+              className="flex-1 bg-white border border-neutralGray/20 rounded-xl px-4 py-3 font-mono text-lg font-bold text-primary text-center tracking-[0.2em] outline-none focus:border-accent uppercase"
             />
             <button
               onClick={handleCodeLookup}
@@ -218,7 +218,7 @@ export const VerificationPanel = () => {
             </button>
           </div>
           {error && (
-            <p className="font-outfit text-xs text-red-500 mt-2">{error}</p>
+            <p className="font-outfit text-xs text-urgency-critical mt-2">{error}</p>
           )}
           {foundPledge && renderPledgeDetails(foundPledge)}
         </div>
@@ -234,7 +234,7 @@ export const VerificationPanel = () => {
               value={searchInput}
               onChange={(e) => { setSearchInput(e.target.value); setError(''); }}
               placeholder="Phone number or donor name..."
-              className="flex-1 bg-white border border-primary/10 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
+              className="flex-1 bg-white border border-neutralGray/20 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
             />
             <button
               onClick={handleFallbackSearch}
@@ -244,7 +244,7 @@ export const VerificationPanel = () => {
             </button>
           </div>
           {error && (
-            <p className="font-outfit text-xs text-red-500 mt-2">{error}</p>
+            <p className="font-outfit text-xs text-urgency-critical mt-2">{error}</p>
           )}
           {foundPledges.length > 0 && (
             <div className="mt-6 space-y-4">

@@ -53,26 +53,26 @@ export const PledgeModal = () => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-dark/60 backdrop-blur-sm" onClick={handleClose}></div>
+      <div className="absolute inset-0 bg-primary/80 backdrop-blur-sm" onClick={handleClose}></div>
 
       {/* Modal */}
-      <div className="relative bg-background rounded-[2rem] shadow-2xl border border-primary/10 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-background rounded-[2rem] shadow-2xl border border-neutralGray/20 w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="p-6 pb-4 border-b border-primary/5">
+        <div className="p-6 pb-4 border-b border-neutralGray/10">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <UrgencyBadge urgency={need.urgency} size="small" />
-                <span className="font-mono text-[9px] text-dark/40 uppercase tracking-wider">{need.category}</span>
+                <span className="font-mono text-[9px] text-neutralGray uppercase tracking-wider">{need.category}</span>
               </div>
               <h2 className="font-sans font-bold text-2xl text-primary">{need.itemName}</h2>
-              <div className="flex items-center gap-1.5 mt-1 text-dark/50">
+              <div className="flex items-center gap-1.5 mt-1 text-neutralGray">
                 <MapPin size={12} />
                 <span className="font-outfit text-xs">{need.dropOffPoint}</span>
               </div>
             </div>
-            <button onClick={handleClose} className="p-2 hover:bg-primary/5 rounded-xl transition-colors">
-              <X size={20} className="text-dark/40" />
+            <button onClick={handleClose} className="p-2 hover:bg-neutralGray/10 rounded-xl transition-colors">
+              <X size={20} className="text-neutralGray" />
             </button>
           </div>
         </div>
@@ -81,25 +81,25 @@ export const PledgeModal = () => {
           {!result ? (
             <>
               {/* Remaining quantity */}
-              <div className="flex items-center justify-between mb-6 p-4 bg-white rounded-xl border border-primary/5">
+              <div className="flex items-center justify-between mb-6 p-4 bg-white rounded-xl border border-neutralGray/10">
                 <div>
-                  <p className="font-mono text-[9px] text-dark/40 uppercase tracking-wider mb-1">Remaining Need</p>
+                  <p className="font-mono text-[9px] text-neutralGray uppercase tracking-wider mb-1">Remaining Need</p>
                   <p className="font-sans font-bold text-3xl text-primary">{remaining}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-mono text-[9px] text-dark/40 uppercase tracking-wider mb-1">Total Requested</p>
-                  <p className="font-outfit text-sm text-dark/60">{need.quantityNeeded}</p>
+                  <p className="font-mono text-[9px] text-neutralGray uppercase tracking-wider mb-1">Total Requested</p>
+                  <p className="font-outfit text-sm text-neutralGray">{need.quantityNeeded}</p>
                 </div>
               </div>
 
               {/* Progress bar */}
               <div className="mb-6">
-                <div className="flex justify-between text-[9px] font-mono text-dark/40 mb-1.5">
+                <div className="flex justify-between text-[9px] font-mono text-neutralGray mb-1.5">
                   <span>Pledged: {need.quantityPledged}</span>
                   <span>Delivered: {need.quantityDelivered}</span>
                 </div>
-                <div className="w-full bg-primary/10 h-2 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 transition-all duration-500"
+                <div className="w-full bg-neutralGray/10 h-2 rounded-full overflow-hidden">
+                  <div className="h-full bg-urgency-stable transition-all duration-500"
                     style={{ width: `${Math.min(100, (need.quantityDelivered / need.quantityNeeded) * 100)}%` }}>
                   </div>
                   <div className="h-full bg-accent/60 -mt-2 transition-all duration-500"
@@ -115,7 +115,7 @@ export const PledgeModal = () => {
                   <button
                     type="button"
                     onClick={() => setQuantity(prev => String(Math.max(1, (parseInt(prev) || 0) - 1)))}
-                    className="p-2.5 bg-primary/5 hover:bg-primary/10 rounded-xl transition-colors"
+                    className="p-2.5 bg-neutralGray/5 hover:bg-neutralGray/10 rounded-xl transition-colors"
                   >
                     <Minus size={16} className="text-primary" />
                   </button>
@@ -126,12 +126,12 @@ export const PledgeModal = () => {
                     value={quantity}
                     onChange={(e) => { setQuantity(e.target.value); setError(''); }}
                     placeholder="0"
-                    className="flex-1 text-center bg-white border border-primary/10 rounded-xl px-4 py-3 font-mono text-2xl font-bold text-primary outline-none focus:border-accent"
+                    className="flex-1 text-center bg-white border border-neutralGray/20 rounded-xl px-4 py-3 font-mono text-2xl font-bold text-primary outline-none focus:border-accent"
                   />
                   <button
                     type="button"
                     onClick={() => setQuantity(prev => String(Math.min(remaining, (parseInt(prev) || 0) + 1)))}
-                    className="p-2.5 bg-primary/5 hover:bg-primary/10 rounded-xl transition-colors"
+                    className="p-2.5 bg-neutralGray/5 hover:bg-neutralGray/10 rounded-xl transition-colors"
                   >
                     <Plus size={16} className="text-primary" />
                   </button>
@@ -147,7 +147,7 @@ export const PledgeModal = () => {
                     className={`flex-1 py-2 rounded-xl font-mono text-sm font-bold transition-all ${
                       parseInt(quantity) === p
                         ? 'bg-primary text-background'
-                        : 'bg-primary/5 text-primary hover:bg-primary/10'
+                        : 'bg-neutralGray/5 text-primary hover:bg-neutralGray/10'
                     }`}
                   >
                     {p}
@@ -168,14 +168,14 @@ export const PledgeModal = () => {
               {/* Anonymous toggle */}
               <button
                 onClick={() => setAnonymous(!anonymous)}
-                className="flex items-center gap-3 w-full p-3 rounded-xl border border-primary/10 hover:bg-primary/5 transition-colors mb-6"
+                className="flex items-center gap-3 w-full p-3 rounded-xl border border-neutralGray/20 hover:bg-neutralGray/5 transition-colors mb-6"
               >
-                <div className={`p-1.5 rounded-lg ${anonymous ? 'bg-accent/10 text-accent' : 'bg-primary/5 text-dark/40'}`}>
+                <div className={`p-1.5 rounded-lg ${anonymous ? 'bg-accent/10 text-accent' : 'bg-neutralGray/10 text-neutralGray'}`}>
                   {anonymous ? <EyeOff size={16} /> : <Eye size={16} />}
                 </div>
                 <div className="text-left flex-1">
                   <p className="font-outfit text-sm font-semibold text-primary">Anonymous Donation</p>
-                  <p className="font-outfit text-[10px] text-dark/50">Your name will be hidden from the public feed</p>
+                  <p className="font-outfit text-[10px] text-neutralGray">Your name will be hidden from the public feed</p>
                 </div>
                 <div className={`w-10 h-5 rounded-full transition-colors flex items-center ${anonymous ? 'bg-accent justify-end' : 'bg-primary/20 justify-start'}`}>
                   <div className="w-4 h-4 bg-white rounded-full mx-0.5 shadow-sm"></div>
@@ -184,8 +184,8 @@ export const PledgeModal = () => {
 
               {/* Error */}
               {error && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                  <p className="font-outfit text-xs text-red-500">{error}</p>
+                <div className="mb-4 p-3 bg-urgency-critical/10 border border-urgency-critical/20 rounded-xl">
+                  <p className="font-outfit text-xs text-urgency-critical">{error}</p>
                 </div>
               )}
 
@@ -199,18 +199,18 @@ export const PledgeModal = () => {
                 Confirm Pledge
               </button>
 
-              <p className="font-outfit text-[10px] text-dark/40 text-center mt-3">
+              <p className="font-outfit text-[10px] text-neutralGray text-center mt-3">
                 ⏱ Pledges expire after 24 hours if not verified
               </p>
             </>
           ) : (
             /* ── SUCCESS STATE ── */
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle size={32} className="text-green-500" />
+              <div className="w-16 h-16 bg-urgency-stable/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle size={32} className="text-urgency-stable" />
               </div>
               <h3 className="font-sans font-bold text-xl text-primary mb-1">Pledge Confirmed!</h3>
-              <p className="font-outfit text-sm text-dark/60 mb-6">
+              <p className="font-outfit text-sm text-neutralGray mb-6">
                 {result.pledge.quantity}x {need.itemName}
               </p>
 
@@ -223,14 +223,14 @@ export const PledgeModal = () => {
               {/* Countdown */}
               <div className="mt-6">
                 <CountdownTimer expiresAt={result.pledge.expiresAt} compact />
-                <p className="font-outfit text-[10px] text-dark/40 mt-2">
+                <p className="font-outfit text-[10px] text-neutralGray mt-2">
                   Deliver within 24 hours to avoid expiration
                 </p>
               </div>
 
               <button
                 onClick={handleClose}
-                className="w-full mt-6 py-3 bg-primary/5 text-primary rounded-xl font-outfit font-semibold text-sm hover:bg-primary/10 transition-colors"
+                className="w-full mt-6 py-3 bg-neutralGray/10 text-primary rounded-xl font-outfit font-semibold text-sm hover:bg-neutralGray/20 transition-colors"
               >
                 Done
               </button>

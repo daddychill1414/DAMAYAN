@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ArrowRight, Activity, ShieldCheck, Zap } from 'lucide-react';
 import { MagneticButton } from '../components/MagneticButton';
 import { Link } from 'react-router-dom';
+import heroImage from '../assets/hero.png';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -41,30 +42,31 @@ const Hero = () => {
     <section ref={container} className="relative h-[100dvh] w-full overflow-hidden flex items-end pb-24 px-8 md:px-16 bg-primary">
       {/* Background */}
       <div className="hero-bg absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary via-primary to-[#0f2136]"></div>
-        <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
-        <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] bg-accent/20 rounded-full blur-[120px]"></div>
+        <img src={heroImage} alt="Hero Background" className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/90 via-primary/80 to-[#0f2136]/90"></div>
+        <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+        <div className="absolute -top-1/4 -right-1/4 w-[800px] h-[800px] bg-accent/30 rounded-full blur-[120px]"></div>
       </div>
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-5xl text-background">
-        <div className="flex items-center gap-4 mb-6 hero-element opacity-0">
+        <div className="flex items-center gap-4 mb-6 hero-element">
           <div className="h-[2px] w-12 bg-accent"></div>
-          <p className="font-mono text-sm tracking-widest uppercase text-accent font-bold">Official Barangay System</p>
+          <p className="font-mono text-sm tracking-widest uppercase text-accent font-bold drop-shadow-md">Official Barangay System</p>
         </div>
         
-        <h1 className="leading-[1.05] mb-10 hero-element opacity-0">
-          <span className="block font-sans font-extrabold text-5xl md:text-7xl lg:text-[5.5rem] tracking-tighter">
+        <h1 className="leading-[1.05] mb-10 hero-element">
+          <span className="block font-sans font-extrabold text-5xl md:text-7xl lg:text-[5.5rem] tracking-tighter drop-shadow-xl">
             Community relief is the
           </span>
-          <span className="block font-drama italic text-7xl md:text-[9rem] text-background mt-2 drop-shadow-2xl">
+          <span className="block font-drama italic text-7xl md:text-[9rem] text-background mt-2 drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
             Connection.
           </span>
         </h1>
         
-        <div className="hero-element opacity-0">
+        <div className="hero-element">
           <Link to="/needs">
-            <MagneticButton className="bg-accent text-white px-10 py-5 text-xl font-bold shadow-[0_0_40px_rgba(245,158,11,0.4)]">
+            <MagneticButton className="bg-accent text-white px-10 py-5 text-xl font-bold shadow-[0_10px_40px_rgba(245,158,11,0.4)] hover:shadow-[0_10px_50px_rgba(245,158,11,0.6)] transition-all">
               Start Helping Your Barangay <ArrowRight size={24} />
             </MagneticButton>
           </Link>
@@ -411,7 +413,7 @@ const CTA = () => {
         <h2 className="font-sans font-bold text-5xl md:text-7xl text-dark mb-8 tracking-tight">Become part of the network.</h2>
         <p className="font-outfit text-xl text-neutralGray mb-12 max-w-2xl mx-auto">Help your barangay by pledging exact items that are needed right now. Verified, structured, and fast.</p>
         <Link to="/needs">
-          <MagneticButton className="bg-primary text-background px-12 py-6 text-xl inline-flex items-center gap-3 shadow-xl hover:shadow-2xl hover:shadow-primary/20">
+          <MagneticButton className="bg-accent text-white px-12 py-6 text-xl inline-flex items-center gap-3 shadow-[0_10px_30px_rgba(245,158,11,0.3)] hover:shadow-[0_15px_40px_rgba(245,158,11,0.4)] transition-all">
             Start Helping Now <ArrowRight size={24} />
           </MagneticButton>
         </Link>

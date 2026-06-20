@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 export const Footer = () => {
   return (
-    <footer className="bg-dark text-background rounded-t-[4rem] px-8 md:px-16 pt-24 pb-12 mt-12 relative z-20">
+    <footer className="bg-[#0f2136] text-background rounded-t-[4rem] px-8 md:px-16 pt-24 pb-12 mt-12 relative z-20">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
         <div className="col-span-1 md:col-span-2">
           <div className="font-sans font-bold text-3xl mb-4 text-background">Damayan Match</div>
@@ -29,7 +29,7 @@ export const Footer = () => {
       <div className="max-w-7xl mx-auto pt-8 border-t border-background/10 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="font-outfit text-background/40 text-sm">© 2026 Damayan Network. All rights reserved.</div>
         <div className="flex items-center gap-3 bg-background/5 px-4 py-2 rounded-full border border-background/10">
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
+          <div className="w-2.5 h-2.5 rounded-full bg-urgency-stable animate-pulse"></div>
           <span className="font-mono text-xs text-background/80 uppercase tracking-wider">System Operational</span>
         </div>
       </div>
