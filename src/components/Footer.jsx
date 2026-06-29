@@ -5,7 +5,7 @@ export const Footer = () => {
     <footer className="bg-[#0f2136] text-background rounded-t-[4rem] px-8 md:px-16 pt-24 pb-12 mt-12 relative z-20">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
         <div className="col-span-1 md:col-span-2">
-          <div className="font-sans font-bold text-3xl mb-4 text-background">Damayan Match</div>
+          <div className="font-sans font-bold text-3xl mb-4 text-background">Damayan</div>
           <p className="font-outfit text-background/60 max-w-sm text-lg">Barangay-Based Relief Goods Matching System. Connecting barangay evacuation centers directly with donors.</p>
         </div>
         <div>

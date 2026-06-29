@@ -79,7 +79,7 @@ export const Navbar = () => {
             alt="Damayan Logo" 
             className="w-7 h-auto"
           />
-          Damayan Match
+          Damayan
         </Link>
         
         {/* Desktop Nav */}

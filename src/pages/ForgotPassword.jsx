@@ -20,7 +20,7 @@ export const ForgotPassword = () => {
       <div className="w-full max-w-md">
         
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block font-sans font-bold text-2xl text-primary mb-2">Damayan Match</Link>
+          <Link to="/" className="inline-block font-sans font-bold text-2xl text-primary mb-2">Damayan</Link>
         </div>
 
         <div className="bg-white rounded-3xl border border-primary/10 shadow-xl overflow-hidden">

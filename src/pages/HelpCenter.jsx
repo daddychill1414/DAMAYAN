@@ -8,8 +8,8 @@ const faqSections = [
     icon: BookOpen,
     items: [
       {
-        q: 'What is Damayan Match?',
-        a: 'Damayan Match is a barangay-based relief goods matching system. It connects evacuation centers directly with donors to ensure the right items go where they\'re needed — no duplicates, no waste.',
+        q: 'What is Damayan?',
+        a: 'Damayan is a barangay-based relief goods matching system. It connects evacuation centers directly with donors to ensure the right items go where they\'re needed — no duplicates, no waste.',
       },
       {
         q: 'How do I register as a donor?',
@@ -181,7 +181,7 @@ export const HelpCenter = () => {
           </div>
           <h1 className="font-sans font-bold text-4xl md:text-5xl text-primary mb-3">Help Center</h1>
           <p className="font-outfit text-neutralGray text-lg max-w-xl mx-auto">
-            Everything you need to know about using Damayan Match — from pledging to verification.
+            Everything you need to know about using Damayan — from pledging to verification.
           </p>
         </div>
 
