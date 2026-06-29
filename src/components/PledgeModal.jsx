@@ -5,6 +5,7 @@ import { UrgencyBadge } from './UrgencyBadge';
 import { CountdownTimer } from './CountdownTimer';
 import { LoadingSpinner } from './LoadingSpinner';
 import { HelperTooltip } from './HelperTooltip';
+import { ConfirmDialog } from './ConfirmDialog';
 import { X, Package, MapPin, Minus, Plus, Eye, EyeOff, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 
 export const PledgeModal = () => {
@@ -13,6 +14,7 @@ export const PledgeModal = () => {
   const [anonymous, setAnonymous] = useState(currentUser?.isAnonymous || false);
   const [result, setResult] = useState(null); // { pledge } on success
   const [error, setError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
 
   if (!pledgeModal) return null;
 
@@ -35,7 +37,7 @@ export const PledgeModal = () => {
     setQuantity(String(num));
   };
 
-  const handlePledge = async () => {
+  const handlePrePledge = () => {
     const qty = parseInt(quantity);
     if (!qty || qty <= 0) {
       setError('Please enter a valid quantity greater than 0.');
@@ -49,7 +51,13 @@ export const PledgeModal = () => {
       setError('Please log in to make a pledge.');
       return;
     }
+    setShowConfirm(true);
+  };
 
+  const handlePledge = async () => {
+    setShowConfirm(false);
+    const qty = parseInt(quantity);
+    
     setProcessing(true);
     // Simulate network request
     await new Promise(r => setTimeout(r, 600));
@@ -233,7 +241,7 @@ export const PledgeModal = () => {
               {/* Actions */}
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={handlePledge}
+                  onClick={handlePrePledge}
                   disabled={!quantity || parseInt(quantity) <= 0 || remaining <= 0 || isProcessing}
                   className="w-full flex items-center justify-center gap-2 bg-primary text-background py-4 rounded-xl font-outfit font-bold text-sm btn-magnetic hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -290,6 +298,18 @@ export const PledgeModal = () => {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showConfirm}
+        onConfirm={handlePledge}
+        onCancel={() => setShowConfirm(false)}
+        title="Confirm Your Pledge"
+        message={`Are you sure you want to pledge ${quantity}x ${need.itemName}? You must deliver these items within 24 hours to avoid a penalty strike.`}
+        confirmLabel="Yes, I commit to deliver"
+        cancelLabel="No, take me back"
+        variant="warning"
+        icon={Package}
+      />
     </div>
   );
 };
