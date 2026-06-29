@@ -1,13 +1,29 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
-import { Package, CheckCircle, Clock, AlertTriangle, Plus, MapPin, QrCode } from 'lucide-react';
+import { Package, CheckCircle, Clock, AlertTriangle, Plus, MapPin, QrCode, XCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { UrgencyBadge } from '../components/UrgencyBadge';
+import { UrgencyBadge, StatusBadge } from '../components/UrgencyBadge';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+
+// Helper for relative time
+const getRelativeTime = (dateString) => {
+  const diff = Date.now() - new Date(dateString).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 1) return 'Just now';
+  if (hours === 1) return '1 hour ago';
+  if (hours < 24) return `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'Yesterday' : `${days} days ago`;
+};
 
 export const CoordinatorDashboard = () => {
-  const { needs, pledges, donationHistory, barangay, postNeed, updateNeed, closeNeed, adjustNeedQuantity } = useStore();
+  const { needs, pledges, donationHistory, barangay, postNeed, closeNeed, adjustNeedQuantity, isProcessing, setProcessing } = useStore();
   const [activeTab, setActiveTab] = useState('overview'); // overview, post, needs, history, qr
   const [newNeed, setNewNeed] = useState({ itemName: '', category: 'Food', quantity: '', urgency: 'stable', dropOffPoint: barangay.name + ' Hall' });
+  
+  // Dialog state
+  const [confirmState, setConfirmState] = useState({ open: false, type: null, needId: null });
 
   const activeNeeds = needs.filter(n => n.status === 'active');
   const fulfilledNeeds = needs.filter(n => n.status === 'fulfilled');
@@ -15,11 +31,46 @@ export const CoordinatorDashboard = () => {
   const expiredPledges = pledges.filter(p => p.status === 'expired');
   const verifiedPledges = pledges.filter(p => p.status.startsWith('verified'));
 
-  const handlePostNeed = (e) => {
+  const handlePostNeed = async (e) => {
     e.preventDefault();
+    setProcessing(true);
+    await new Promise(r => setTimeout(r, 600)); // Simulate delay
     postNeed({ ...newNeed, quantity: parseInt(newNeed.quantity) });
+    setProcessing(false);
     setNewNeed({ ...newNeed, itemName: '', quantity: '' });
     setActiveTab('needs');
+  };
+
+  const handleConfirmAction = () => {
+    const { type, needId } = confirmState;
+    if (type === 'close') {
+      closeNeed(needId);
+    } else if (type === 'walkin') {
+      adjustNeedQuantity(needId, 1);
+    }
+    setConfirmState({ open: false, type: null, needId: null });
+  };
+
+  const getConfirmProps = () => {
+    const need = needs.find(n => n.id === confirmState.needId);
+    if (confirmState.type === 'close') {
+      return {
+        title: 'Close Need Request?',
+        message: `Are you sure you want to close the request for "${need?.itemName}"? It will be removed from the public board.`,
+        confirmLabel: 'Yes, Close Need',
+        variant: 'danger',
+      };
+    }
+    if (confirmState.type === 'walkin') {
+      return {
+        title: 'Add Walk-in Donation?',
+        message: `Confirm adding +1 unit to "${need?.itemName}" without a pledge QR. This cannot be easily undone.`,
+        confirmLabel: 'Add +1 Walk-in',
+        variant: 'info',
+        icon: Plus
+      };
+    }
+    return {};
   };
 
   const tabs = [
@@ -33,7 +84,7 @@ export const CoordinatorDashboard = () => {
   return (
     <div className="pt-32 px-4 md:px-8 lg:px-16 pb-24 min-h-screen bg-background">
       <div className="max-w-6xl mx-auto">
-        
+
         {/* Header */}
         <div className="mb-12">
           <div className="inline-flex items-center gap-3 mb-3">
@@ -50,11 +101,10 @@ export const CoordinatorDashboard = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-3 rounded-t-xl font-outfit text-sm font-semibold transition-all whitespace-nowrap ${
-                activeTab === tab.id
+              className={`px-5 py-3 rounded-t-xl font-outfit text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab.id
                   ? 'bg-primary text-background'
                   : 'bg-transparent text-neutralGray hover:bg-neutralGray/10'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -63,7 +113,7 @@ export const CoordinatorDashboard = () => {
 
         {/* Tab Content */}
         <div className="min-h-[50vh]">
-          
+
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -74,7 +124,7 @@ export const CoordinatorDashboard = () => {
                 <h3 className="font-mono text-4xl font-bold text-primary mb-1">{activeNeeds.length}</h3>
                 <p className="font-outfit text-sm text-neutralGray uppercase tracking-wider">Active Needs</p>
               </div>
-              
+
               <div className="bg-white p-6 rounded-3xl border border-neutralGray/20 shadow-sm">
                 <div className="w-12 h-12 bg-urgency-stable/10 rounded-2xl flex items-center justify-center text-urgency-stable mb-4">
                   <CheckCircle size={24} />
@@ -113,7 +163,7 @@ export const CoordinatorDashboard = () => {
                     type="text"
                     required
                     value={newNeed.itemName}
-                    onChange={e => setNewNeed({...newNeed, itemName: e.target.value})}
+                    onChange={e => setNewNeed({ ...newNeed, itemName: e.target.value })}
                     placeholder="e.g. 10L Drinking Water"
                     className="w-full bg-background border border-neutralGray/20 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
                   />
@@ -123,7 +173,7 @@ export const CoordinatorDashboard = () => {
                     <label className="block font-outfit text-sm font-semibold text-primary mb-2">Category</label>
                     <select
                       value={newNeed.category}
-                      onChange={e => setNewNeed({...newNeed, category: e.target.value})}
+                      onChange={e => setNewNeed({ ...newNeed, category: e.target.value })}
                       className="w-full bg-background border border-neutralGray/20 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
                     >
                       <option>Food</option>
@@ -141,7 +191,7 @@ export const CoordinatorDashboard = () => {
                       required
                       min="1"
                       value={newNeed.quantity}
-                      onChange={e => setNewNeed({...newNeed, quantity: e.target.value})}
+                      onChange={e => setNewNeed({ ...newNeed, quantity: e.target.value })}
                       placeholder="e.g. 50"
                       className="w-full bg-background border border-neutralGray/20 rounded-xl px-4 py-3 font-outfit text-sm outline-none focus:border-accent"
                     />
@@ -154,12 +204,11 @@ export const CoordinatorDashboard = () => {
                       <button
                         key={u}
                         type="button"
-                        onClick={() => setNewNeed({...newNeed, urgency: u})}
-                        className={`py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-colors border ${
-                          newNeed.urgency === u 
+                        onClick={() => setNewNeed({ ...newNeed, urgency: u })}
+                        className={`py-3 rounded-xl font-mono text-[10px] font-bold uppercase tracking-wider transition-colors border ${newNeed.urgency === u
                             ? 'bg-primary text-background border-primary'
                             : 'bg-transparent text-neutralGray border-neutralGray/20 hover:border-neutralGray/40'
-                        }`}
+                          }`}
                       >
                         {u}
                       </button>
@@ -174,17 +223,29 @@ export const CoordinatorDashboard = () => {
                       type="text"
                       required
                       value={newNeed.dropOffPoint}
-                      onChange={e => setNewNeed({...newNeed, dropOffPoint: e.target.value})}
+                      onChange={e => setNewNeed({ ...newNeed, dropOffPoint: e.target.value })}
                       className="w-full bg-transparent font-outfit text-sm outline-none"
                     />
                   </div>
                 </div>
-                
-                <div className="pt-4">
-                  <button type="submit" className="w-full flex items-center justify-center gap-2 bg-primary text-background py-4 rounded-xl font-outfit font-bold text-sm hover:shadow-lg transition-all">
-                    <Plus size={18} /> Publish Need
+
+                <div className="pt-4 flex flex-col gap-3">
+                  <button 
+                    type="submit" 
+                    disabled={isProcessing}
+                    className="w-full flex items-center justify-center gap-2 bg-primary text-background py-4 rounded-xl font-outfit font-bold text-sm hover:shadow-lg transition-all disabled:opacity-50"
+                  >
+                    {isProcessing ? <LoadingSpinner label="Publishing..." /> : <><Plus size={18} /> Publish Need</>}
                   </button>
-                  <p className="font-outfit text-[10px] text-neutralGray text-center mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setNewNeed({ itemName: '', category: 'Food', quantity: '', urgency: 'stable', dropOffPoint: barangay.name + ' Hall' })}
+                    disabled={isProcessing}
+                    className="w-full py-3 bg-white text-primary rounded-xl font-outfit font-bold text-sm hover:bg-neutralGray/5 border-2 border-neutralGray/20 transition-colors disabled:opacity-50"
+                  >
+                    Clear Form
+                  </button>
+                  <p className="font-outfit text-[10px] text-neutralGray text-center mt-1">
                     Ensure physical storage space is available before posting.
                   </p>
                 </div>
@@ -209,12 +270,16 @@ export const CoordinatorDashboard = () => {
                     {needs.map(need => {
                       const remaining = Math.max(0, need.quantityNeeded - need.quantityPledged - need.quantityDelivered);
                       const isFulfilled = need.status === 'fulfilled' || need.status === 'closed';
-                      
+
                       return (
                         <tr key={need.id} className={isFulfilled ? 'bg-background/30 opacity-70' : 'hover:bg-background/30 transition-colors'}>
                           <td className="px-6 py-4">
-                            <p className="font-sans font-bold text-primary text-base">{need.itemName}</p>
-                            <p className="font-mono text-[10px] text-neutralGray uppercase">{need.category} • {need.status}</p>
+                            <p className="font-sans font-bold text-primary text-base mb-1">{need.itemName}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[10px] text-neutralGray uppercase bg-neutralGray/10 px-2 rounded-full">{need.category}</span>
+                              <StatusBadge status={need.status} />
+                            </div>
+                            <p className="font-mono text-[9px] text-neutralGray mt-2">Posted {getRelativeTime(need.createdAt)}</p>
                           </td>
                           <td className="px-6 py-4">
                             <UrgencyBadge urgency={need.urgency} size="small" />
@@ -234,16 +299,16 @@ export const CoordinatorDashboard = () => {
                           <td className="px-6 py-4 text-right space-x-2">
                             {need.status === 'active' && (
                               <>
-                                <button 
-                                  onClick={() => adjustNeedQuantity(need.id, 1)}
-                                  className="px-3 py-1.5 bg-primary/5 text-primary rounded-lg font-bold text-[10px] uppercase hover:bg-primary/10"
+                                <button
+                                  onClick={() => setConfirmState({ open: true, type: 'walkin', needId: need.id })}
+                                  className="px-3 py-1.5 bg-primary/5 text-primary rounded-lg font-bold text-[10px] uppercase hover:bg-primary/10 transition-colors"
                                   title="Add manual walk-in donation"
                                 >
                                   +1 Walk-in
                                 </button>
-                                <button 
-                                  onClick={() => closeNeed(need.id)}
-                                  className="px-3 py-1.5 bg-urgency-critical/5 text-urgency-critical rounded-lg font-bold text-[10px] uppercase hover:bg-urgency-critical/10"
+                                <button
+                                  onClick={() => setConfirmState({ open: true, type: 'close', needId: need.id })}
+                                  className="px-3 py-1.5 bg-urgency-critical/5 text-urgency-critical rounded-lg font-bold text-[10px] uppercase hover:bg-urgency-critical/10 transition-colors"
                                 >
                                   Close
                                 </button>
@@ -281,20 +346,21 @@ export const CoordinatorDashboard = () => {
                         return (
                           <tr key={h.id} className="hover:bg-background/30 transition-colors">
                             <td className="px-6 py-4">
-                              <p className="font-mono text-xs text-primary">{date.toLocaleDateString()}</p>
-                              <p className="font-mono text-[10px] text-neutralGray">{date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                              <p className="font-mono text-xs text-primary">{getRelativeTime(h.verifiedAt)}</p>
+                              <p className="font-mono text-[10px] text-neutralGray">{date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                             </td>
                             <td className="px-6 py-4">
                               <p className="font-sans font-bold text-primary">{h.quantity}x</p>
                               <p className="text-neutralGray text-xs">{h.itemName}</p>
                             </td>
-                            <td className="px-6 py-4 text-xs font-semibold text-primary">
-                              {h.donorId.startsWith('anon') ? 'Anonymous' : h.donorId} {/* Ideally join with donor table */}
+                            <td className="px-6 py-4 text-xs font-semibold text-primary flex items-center gap-2">
+                              {h.donorId.startsWith('anon') ? 'Anonymous' : h.donorId}
                             </td>
                             <td className="px-6 py-4">
-                              <span className={`px-2 py-1 rounded-md font-mono text-[9px] uppercase font-bold ${
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md font-mono text-[9px] uppercase font-bold ${
                                 h.verifiedBy === 'qr' ? 'bg-urgency-stable/10 text-urgency-stable' : 'bg-urgency-warning/10 text-urgency-warning'
-                              }`}>
+                                }`}>
+                                {h.verifiedBy === 'qr' ? <QrCode size={10} /> : <Hash size={10} />}
                                 {h.verifiedBy}
                               </span>
                             </td>
@@ -315,16 +381,16 @@ export const CoordinatorDashboard = () => {
                 <div className="absolute top-0 left-0 w-full h-2 bg-accent"></div>
                 <h2 className="font-sans font-bold text-2xl text-primary mb-2">Barangay QR</h2>
                 <p className="font-outfit text-sm text-neutralGray mb-8">Have donors scan this to register as a community member.</p>
-                
+
                 <div className="inline-block p-4 bg-background rounded-2xl border border-neutralGray/20 mb-6">
-                  <QRCodeSVG 
+                  <QRCodeSVG
                     value={barangay.registrationQR}
                     size={200}
                     bgColor="#F2F0E9"
                     fgColor="#2E4036"
                   />
                 </div>
-                
+
                 <div className="bg-neutralGray/5 rounded-xl p-4 border border-neutralGray/10">
                   <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Manual Code</p>
                   <p className="font-mono text-xl font-bold text-primary tracking-widest">{barangay.id.split('-')[1].toUpperCase()}</p>
@@ -335,6 +401,14 @@ export const CoordinatorDashboard = () => {
 
         </div>
       </div>
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        open={confirmState.open}
+        onConfirm={handleConfirmAction}
+        onCancel={() => setConfirmState({ open: false, type: null, needId: null })}
+        {...getConfirmProps()}
+      />
     </div>
   );
 };

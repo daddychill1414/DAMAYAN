@@ -3,10 +3,12 @@ import { useStore } from '../store';
 import { QRDisplay } from './QRDisplay';
 import { UrgencyBadge } from './UrgencyBadge';
 import { CountdownTimer } from './CountdownTimer';
-import { X, Package, MapPin, Minus, Plus, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { LoadingSpinner } from './LoadingSpinner';
+import { HelperTooltip } from './HelperTooltip';
+import { X, Package, MapPin, Minus, Plus, Eye, EyeOff, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 
 export const PledgeModal = () => {
-  const { pledgeModal, closePledgeModal, needs, currentUser, createPledge, showToast } = useStore();
+  const { pledgeModal, closePledgeModal, needs, currentUser, createPledge, showToast, isProcessing, setProcessing } = useStore();
   const [quantity, setQuantity] = useState('');
   const [anonymous, setAnonymous] = useState(currentUser?.isAnonymous || false);
   const [result, setResult] = useState(null); // { pledge } on success
@@ -19,18 +21,42 @@ export const PledgeModal = () => {
 
   const remaining = Math.max(0, need.quantityNeeded - need.quantityPledged - need.quantityDelivered);
 
-  const handlePledge = () => {
+  const handleQuantityChange = (val) => {
+    setError('');
+    let num = parseInt(val);
+    if (isNaN(num)) {
+      setQuantity('');
+      return;
+    }
+    if (num > remaining) {
+      setError(`Cannot pledge more than ${remaining}. The quantity has been adjusted.`);
+      num = remaining;
+    }
+    setQuantity(String(num));
+  };
+
+  const handlePledge = async () => {
     const qty = parseInt(quantity);
     if (!qty || qty <= 0) {
-      setError('Please enter a valid quantity');
+      setError('Please enter a valid quantity greater than 0.');
+      return;
+    }
+    if (qty > remaining) {
+      setError(`You can only pledge up to ${remaining} items.`);
       return;
     }
     if (!currentUser) {
-      setError('Please log in to make a pledge');
+      setError('Please log in to make a pledge.');
       return;
     }
 
+    setProcessing(true);
+    // Simulate network request
+    await new Promise(r => setTimeout(r, 600));
+
     const res = createPledge(need.id, currentUser.id, qty);
+    setProcessing(false);
+
     if (!res.success) {
       setError(res.error);
       return;
@@ -41,7 +67,7 @@ export const PledgeModal = () => {
     showToast(`Pledge created! ${qty}x ${need.itemName}`, 'success');
   };
 
-  const presets = [5, 10, 20];
+  const presets = [5, 10, 20].filter(p => p <= remaining);
 
   const handleClose = () => {
     setQuantity('');
@@ -53,7 +79,7 @@ export const PledgeModal = () => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-primary/80 backdrop-blur-sm" onClick={handleClose}></div>
+      <div className="absolute inset-0 bg-primary/80 backdrop-blur-sm" onClick={!isProcessing ? handleClose : undefined}></div>
 
       {/* Modal */}
       <div className="relative bg-background rounded-[2rem] shadow-2xl border border-neutralGray/20 w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -62,7 +88,7 @@ export const PledgeModal = () => {
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <UrgencyBadge urgency={need.urgency} size="small" />
+                <UrgencyBadge urgency={need.urgency} size="small" showUrgentTag />
                 <span className="font-mono text-[9px] text-neutralGray uppercase tracking-wider">{need.category}</span>
               </div>
               <h2 className="font-sans font-bold text-2xl text-primary">{need.itemName}</h2>
@@ -71,9 +97,11 @@ export const PledgeModal = () => {
                 <span className="font-outfit text-xs">{need.dropOffPoint}</span>
               </div>
             </div>
-            <button onClick={handleClose} className="p-2 hover:bg-neutralGray/10 rounded-xl transition-colors">
-              <X size={20} className="text-neutralGray" />
-            </button>
+            {!isProcessing && !result && (
+              <button onClick={handleClose} className="p-2 hover:bg-neutralGray/10 rounded-xl transition-colors">
+                <X size={20} className="text-neutralGray" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -98,24 +126,28 @@ export const PledgeModal = () => {
                   <span>Pledged: {need.quantityPledged}</span>
                   <span>Delivered: {need.quantityDelivered}</span>
                 </div>
-                <div className="w-full bg-neutralGray/10 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-neutralGray/10 h-2 rounded-full overflow-hidden flex">
                   <div className="h-full bg-urgency-stable transition-all duration-500"
                     style={{ width: `${Math.min(100, (need.quantityDelivered / need.quantityNeeded) * 100)}%` }}>
                   </div>
-                  <div className="h-full bg-accent/60 -mt-2 transition-all duration-500"
-                    style={{ width: `${Math.min(100, ((need.quantityPledged + need.quantityDelivered) / need.quantityNeeded) * 100)}%` }}>
+                  <div className="h-full bg-accent transition-all duration-500"
+                    style={{ width: `${Math.min(100, (need.quantityPledged / need.quantityNeeded) * 100)}%` }}>
                   </div>
                 </div>
               </div>
 
               {/* Quantity input */}
               <div className="mb-4">
-                <label className="block font-outfit text-sm font-semibold text-primary mb-2">Pledge Quantity</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block font-outfit text-sm font-semibold text-primary">Pledge Quantity</label>
+                  <HelperTooltip text="You can pledge a partial amount! Every bit helps. Just enter what you can comfortably provide." position="top" />
+                </div>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setQuantity(prev => String(Math.max(1, (parseInt(prev) || 0) - 1)))}
-                    className="p-2.5 bg-neutralGray/5 hover:bg-neutralGray/10 rounded-xl transition-colors"
+                    onClick={() => handleQuantityChange(String(Math.max(1, (parseInt(quantity) || 0) - 1)))}
+                    disabled={parseInt(quantity) <= 1}
+                    className="p-2.5 bg-neutralGray/5 hover:bg-neutralGray/10 rounded-xl transition-colors disabled:opacity-50"
                   >
                     <Minus size={16} className="text-primary" />
                   </button>
@@ -124,14 +156,15 @@ export const PledgeModal = () => {
                     min="1"
                     max={remaining}
                     value={quantity}
-                    onChange={(e) => { setQuantity(e.target.value); setError(''); }}
+                    onChange={(e) => handleQuantityChange(e.target.value)}
                     placeholder="0"
                     className="flex-1 text-center bg-white border border-neutralGray/20 rounded-xl px-4 py-3 font-mono text-2xl font-bold text-primary outline-none focus:border-accent"
                   />
                   <button
                     type="button"
-                    onClick={() => setQuantity(prev => String(Math.min(remaining, (parseInt(prev) || 0) + 1)))}
-                    className="p-2.5 bg-neutralGray/5 hover:bg-neutralGray/10 rounded-xl transition-colors"
+                    onClick={() => handleQuantityChange(String(Math.min(remaining, (parseInt(quantity) || 0) + 1)))}
+                    disabled={parseInt(quantity) >= remaining}
+                    className="p-2.5 bg-neutralGray/5 hover:bg-neutralGray/10 rounded-xl transition-colors disabled:opacity-50"
                   >
                     <Plus size={16} className="text-primary" />
                   </button>
@@ -143,7 +176,7 @@ export const PledgeModal = () => {
                 {presets.map(p => (
                   <button
                     key={p}
-                    onClick={() => { setQuantity(String(Math.min(p, remaining))); setError(''); }}
+                    onClick={() => handleQuantityChange(String(p))}
                     className={`flex-1 py-2 rounded-xl font-mono text-sm font-bold transition-all ${
                       parseInt(quantity) === p
                         ? 'bg-primary text-background'
@@ -154,7 +187,7 @@ export const PledgeModal = () => {
                   </button>
                 ))}
                 <button
-                  onClick={() => { setQuantity(String(remaining)); setError(''); }}
+                  onClick={() => handleQuantityChange(String(remaining))}
                   className={`flex-1 py-2 rounded-xl font-mono text-sm font-bold transition-all ${
                     parseInt(quantity) === remaining
                       ? 'bg-accent text-background'
@@ -168,7 +201,7 @@ export const PledgeModal = () => {
               {/* Anonymous toggle */}
               <button
                 onClick={() => setAnonymous(!anonymous)}
-                className="flex items-center gap-3 w-full p-3 rounded-xl border border-neutralGray/20 hover:bg-neutralGray/5 transition-colors mb-6"
+                className="flex items-center gap-3 w-full p-3 rounded-xl border border-neutralGray/20 hover:bg-neutralGray/5 transition-colors mb-4"
               >
                 <div className={`p-1.5 rounded-lg ${anonymous ? 'bg-accent/10 text-accent' : 'bg-neutralGray/10 text-neutralGray'}`}>
                   {anonymous ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -182,26 +215,45 @@ export const PledgeModal = () => {
                 </div>
               </button>
 
-              {/* Error */}
+              {/* Error Panel */}
               {error && (
-                <div className="mb-4 p-3 bg-urgency-critical/10 border border-urgency-critical/20 rounded-xl">
-                  <p className="font-outfit text-xs text-urgency-critical">{error}</p>
+                <div className="mb-4 p-3 bg-urgency-critical/10 border border-urgency-critical/20 rounded-xl flex items-start gap-2">
+                  <AlertTriangle size={16} className="text-urgency-critical shrink-0 mt-0.5" />
+                  <p className="font-outfit text-xs text-urgency-critical leading-relaxed">{error}</p>
                 </div>
               )}
 
-              {/* Submit */}
-              <button
-                onClick={handlePledge}
-                disabled={!quantity || parseInt(quantity) <= 0 || remaining <= 0}
-                className="w-full flex items-center justify-center gap-2 bg-primary text-background py-4 rounded-xl font-outfit font-bold text-sm btn-magnetic hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Package size={18} />
-                Confirm Pledge
-              </button>
+              {/* Time Indicator */}
+              <div className="flex items-center justify-center gap-1.5 mb-4 text-urgency-warning font-outfit text-xs font-semibold">
+                <Clock size={14} />
+                <span>Pledge expires in 24 hours</span>
+                <HelperTooltip text="You must deliver the items to the drop-off point within 24 hours, otherwise the pledge is canceled and you may receive a strike." />
+              </div>
 
-              <p className="font-outfit text-[10px] text-neutralGray text-center mt-3">
-                ⏱ Pledges expire after 24 hours if not verified
-              </p>
+              {/* Actions */}
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handlePledge}
+                  disabled={!quantity || parseInt(quantity) <= 0 || remaining <= 0 || isProcessing}
+                  className="w-full flex items-center justify-center gap-2 bg-primary text-background py-4 rounded-xl font-outfit font-bold text-sm btn-magnetic hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isProcessing ? (
+                    <LoadingSpinner label="Reserving Items..." />
+                  ) : (
+                    <>
+                      <Package size={18} /> Confirm Pledge
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={handleClose}
+                  disabled={isProcessing}
+                  className="w-full flex items-center justify-center gap-2 bg-background text-neutralGray py-3.5 rounded-xl border-2 border-neutralGray/20 font-outfit font-bold text-sm hover:border-neutralGray/40 hover:text-primary transition-all disabled:opacity-50"
+                >
+                  <X size={16} /> Cancel Pledge
+                </button>
+              </div>
             </>
           ) : (
             /* ── SUCCESS STATE ── */

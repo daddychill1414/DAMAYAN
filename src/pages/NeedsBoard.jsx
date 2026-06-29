@@ -1,11 +1,22 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { MagneticButton } from '../components/MagneticButton';
-import { MapPin, Package, AlertCircle } from 'lucide-react';
-import { UrgencyBadge } from '../components/UrgencyBadge';
+import { MapPin, Package, AlertCircle, Clock } from 'lucide-react';
+import { UrgencyBadge, StatusBadge } from '../components/UrgencyBadge';
+
+// Helper for relative time
+const getRelativeTime = (dateString) => {
+  const diff = Date.now() - new Date(dateString).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 1) return 'Just now';
+  if (hours === 1) return '1 hour ago';
+  if (hours < 24) return `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'Yesterday' : `${days} days ago`;
+};
 
 export const NeedsBoard = () => {
-  const { needs, barangay, openPledgeModal, currentUser } = useStore();
+  const { needs, barangay, openPledgeModal } = useStore();
   const [filter, setFilter] = useState('all');
 
   // Filter and sort needs
@@ -61,39 +72,39 @@ export const NeedsBoard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sortedNeeds.map(need => {
             const remaining = Math.max(0, need.quantityNeeded - need.quantityPledged - need.quantityDelivered);
-            const progress = ((need.quantityPledged + need.quantityDelivered) / need.quantityNeeded) * 100;
             const isFulfilled = need.status === 'fulfilled' || remaining === 0;
 
             return (
               <div key={need.id} className={`bg-white rounded-[2rem] p-6 shadow-xl border flex flex-col relative transition-all ${
                 isFulfilled ? 'opacity-60 border-neutralGray/10 shadow-sm' :
-                need.urgency === 'critical' ? 'border-urgency-critical/30 shadow-lg shadow-urgency-critical/10' : 'border-neutralGray/20 shadow-sm'
+                need.urgency === 'critical' ? 'border-urgency-critical/40 urgent-glow shadow-lg' : 'border-neutralGray/20 shadow-sm'
               }`}>
-                {need.urgency === 'critical' && !isFulfilled && (
-                  <div className="absolute -top-3 -right-3 z-10">
-                    <span className="relative flex h-6 w-6">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-6 w-6 bg-red-500 text-white items-center justify-center">
-                        <AlertCircle size={12} />
-                      </span>
-                    </span>
-                  </div>
-                )}
-
+                
+                {/* Header Row */}
                 <div className="flex justify-between items-start mb-4">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-neutralGray bg-neutralGray/10 px-2 py-1 rounded-full font-bold">
-                    {need.category}
-                  </span>
-                  <UrgencyBadge urgency={need.urgency} size="small" />
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-neutralGray bg-neutralGray/10 px-2 py-1 rounded-full font-bold">
+                      {need.category}
+                    </span>
+                    <StatusBadge status={need.status} />
+                  </div>
+                  <UrgencyBadge urgency={need.urgency} size="small" showUrgentTag={!isFulfilled} />
                 </div>
                 
                 <h3 className="font-sans font-bold text-2xl text-primary mb-2 line-clamp-2">{need.itemName}</h3>
                 
-                <div className="flex items-center gap-2 text-neutralGray font-outfit text-sm mb-6">
-                  <MapPin size={14} className="shrink-0" />
+                <div className="flex items-center gap-2 text-neutralGray font-outfit text-sm mb-2">
+                  <MapPin size={14} className="shrink-0 text-primary/40" />
                   <span className="truncate">{need.dropOffPoint}</span>
                 </div>
+                
+                {/* Timestamp */}
+                <div className="flex items-center gap-1.5 text-neutralGray font-mono text-[10px] uppercase tracking-wider mb-6">
+                  <Clock size={12} />
+                  <span>Posted {getRelativeTime(need.createdAt)}</span>
+                </div>
 
+                {/* Progress */}
                 <div className="mb-6">
                   <div className="flex justify-between font-mono text-xs mb-2">
                     <span className="text-neutralGray">Req: {need.quantityNeeded}</span>
@@ -107,11 +118,12 @@ export const NeedsBoard = () => {
                   </div>
                 </div>
 
+                {/* Action */}
                 <div className="mt-auto">
                   <MagneticButton 
                     onClick={() => openPledgeModal(need.id)}
                     disabled={isFulfilled}
-                    className={`w-full py-3 text-sm flex items-center justify-center gap-2 font-bold ${
+                    className={`w-full py-3.5 text-sm flex items-center justify-center gap-2 font-bold ${
                       isFulfilled ? 'bg-background text-neutralGray border border-neutralGray/20 cursor-not-allowed' :
                       'bg-primary text-background hover:bg-primary/90'
                     }`}

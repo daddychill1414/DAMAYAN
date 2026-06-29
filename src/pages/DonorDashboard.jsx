@@ -4,6 +4,19 @@ import { Package, Heart, CheckCircle, AlertTriangle, ArrowRight, Eye, EyeOff } f
 import { Link } from 'react-router-dom';
 import { QRDisplay } from '../components/QRDisplay';
 import { CountdownTimer } from '../components/CountdownTimer';
+import { StatusBadge } from '../components/UrgencyBadge';
+import { HelperTooltip } from '../components/HelperTooltip';
+
+// Helper for relative time
+const getRelativeTime = (dateString) => {
+  const diff = Date.now() - new Date(dateString).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 1) return 'Just now';
+  if (hours === 1) return '1 hour ago';
+  if (hours < 24) return `${hours} hours ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? 'Yesterday' : `${days} days ago`;
+};
 
 export const DonorDashboard = () => {
   const { currentUser, getDonorPledges, getDonorHistory, toggleAnonymous, needs } = useStore();
@@ -42,11 +55,14 @@ export const DonorDashboard = () => {
           
           {/* Quick Stats */}
           <div className="flex gap-4">
-            <div className="bg-white px-6 py-4 rounded-2xl border border-neutralGray/20 shadow-sm text-center">
+            <div className="bg-white px-6 py-4 rounded-2xl border border-neutralGray/20 shadow-sm text-center flex flex-col items-center justify-center">
               <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Items Delivered</p>
               <p className="font-sans font-bold text-3xl text-urgency-stable">{totalDelivered}</p>
             </div>
-            <div className="bg-white px-6 py-4 rounded-2xl border border-neutralGray/20 shadow-sm text-center">
+            <div className="bg-white px-6 py-4 rounded-2xl border border-neutralGray/20 shadow-sm text-center flex flex-col items-center justify-center relative">
+              <div className="absolute top-2 right-2">
+                <HelperTooltip text="Strikes are given if you let a pledge expire without delivering it, or if a donation is rejected. 3 strikes will restrict your account." position="left" />
+              </div>
               <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Strikes</p>
               <p className={`font-sans font-bold text-3xl ${currentUser.strikes > 0 ? 'text-urgency-critical' : 'text-primary'}`}>
                 {currentUser.strikes}/3
@@ -95,10 +111,15 @@ export const DonorDashboard = () => {
                       <div key={pledge.id} className="bg-white rounded-3xl p-6 border border-neutralGray/20 shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
                         <div className="absolute top-0 left-0 w-full h-1.5 bg-accent"></div>
                         
-                        <div className="mb-6">
-                          <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Item to Deliver</p>
-                          <h3 className="font-sans font-bold text-2xl text-primary line-clamp-1">{need?.itemName || 'Unknown Item'}</h3>
-                          <p className="font-outfit text-sm font-semibold text-accent">{pledge.quantity} units</p>
+                        <div className="mb-6 flex justify-between items-start">
+                          <div>
+                            <p className="font-mono text-[10px] text-neutralGray uppercase tracking-wider mb-1">Item to Deliver</p>
+                            <h3 className="font-sans font-bold text-2xl text-primary line-clamp-1">{need?.itemName || 'Unknown Item'}</h3>
+                            <p className="font-outfit text-sm font-semibold text-accent">{pledge.quantity} units</p>
+                          </div>
+                          <div className="text-right">
+                             <p className="font-mono text-[9px] text-neutralGray uppercase mb-1">{getRelativeTime(pledge.createdAt)}</p>
+                          </div>
                         </div>
                         
                         <div className="mb-6">
@@ -135,7 +156,7 @@ export const DonorDashboard = () => {
                       'bg-urgency-critical/5 border-urgency-critical/20'
                     }`}>
                       <div className="flex items-center gap-4 mb-3 md:mb-0">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                           isVerified ? 'bg-urgency-stable/20 text-urgency-stable' :
                           isExpired ? 'bg-urgency-warning/20 text-urgency-warning' :
                           'bg-urgency-critical/20 text-urgency-critical'
@@ -144,24 +165,23 @@ export const DonorDashboard = () => {
                         </div>
                         <div>
                           <p className="font-sans font-bold text-primary">{pledge.quantity}x {need?.itemName || 'Item'}</p>
-                          <p className="font-mono text-[10px] text-neutralGray">{new Date(pledge.createdAt).toLocaleDateString()}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono text-[10px] text-neutralGray">{new Date(pledge.createdAt).toLocaleDateString()}</p>
+                            <span className="w-1 h-1 rounded-full bg-neutralGray/30"></span>
+                            <p className="font-mono text-[10px] text-neutralGray">{getRelativeTime(pledge.createdAt)}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className={`inline-flex px-3 py-1 rounded-full font-mono text-[10px] uppercase font-bold tracking-wider ${
-                          isVerified ? 'bg-urgency-stable/20 text-urgency-stable' :
-                          isExpired ? 'bg-urgency-warning/20 text-urgency-warning' :
-                          'bg-urgency-critical/20 text-urgency-critical'
-                        }`}>
-                          {pledge.status.replace('_', ' ')}
-                        </span>
+                      <div className="text-right flex flex-col items-end">
+                        <StatusBadge status={pledge.status} />
+                        
                         {isVerified && pledge.status === 'verified_partial' && (
-                          <p className="font-outfit text-xs text-neutralGray mt-1">
+                          <p className="font-outfit text-xs text-neutralGray mt-1.5">
                             {pledge.actualDelivered} of {pledge.quantity} delivered
                           </p>
                         )}
                         {isExpired && (
-                          <p className="font-outfit text-xs text-urgency-critical mt-1 flex items-center justify-end gap-1">
+                          <p className="font-outfit text-xs text-urgency-critical mt-1.5 flex items-center gap-1">
                             <AlertTriangle size={12} /> Strike added
                           </p>
                         )}
@@ -218,18 +238,21 @@ export const DonorDashboard = () => {
                   </button>
                 </div>
 
-                <div className="p-4 bg-urgency-critical/5 rounded-2xl border border-urgency-critical/10">
+                <div className="p-4 bg-urgency-critical/5 rounded-2xl border border-urgency-critical/10 relative">
+                  <div className="absolute top-4 right-4">
+                     <HelperTooltip text="3 strikes result in an account restriction to prevent abuse of the reservation system." position="left" />
+                  </div>
                   <h4 className="font-sans font-bold text-urgency-critical flex items-center gap-2">
                     <AlertTriangle size={16} /> Strike System Status
                   </h4>
-                  <div className="flex items-center gap-2 mt-3">
+                  <div className="flex items-center gap-2 mt-3 max-w-[80%]">
                     {[1, 2, 3].map(strike => (
                       <div key={strike} className={`flex-1 h-2 rounded-full ${
                         strike <= currentUser.strikes ? 'bg-urgency-critical' : 'bg-urgency-critical/20'
                       }`}></div>
                     ))}
                   </div>
-                  <p className="font-outfit text-xs text-urgency-critical/80 mt-3">
+                  <p className="font-outfit text-xs text-urgency-critical/80 mt-3 max-w-[90%]">
                     You have <strong>{currentUser.strikes}</strong> strike(s). Pledges that expire without delivery result in a strike. 3 strikes will restrict your account to prevent hoarding of needs.
                   </p>
                 </div>

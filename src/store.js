@@ -205,11 +205,45 @@ export const useStore = create(
       // ── UI State ──────────────────────────────────
       toast: null,
       pledgeModal: null, // { needId } when open
+      isProcessing: false, // Loading state for async actions
+
+      // ── Undo System ───────────────────────────────
+      undoSnapshot: null, // Stores previous state for undo
 
       // ── Toast ─────────────────────────────────────
-      showToast: (message, type = 'success') => {
-        set({ toast: { message, type } });
-        setTimeout(() => set({ toast: null }), 4000);
+      showToast: (message, type = 'success', action = null) => {
+        set({ toast: { message, type, action } });
+        const duration = action ? 6000 : 4000; // Longer duration when undo is available
+        setTimeout(() => set({ toast: null }), duration);
+      },
+
+      // ── Processing State ──────────────────────────
+      setProcessing: (val) => set({ isProcessing: val }),
+
+      // ── Undo ──────────────────────────────────────
+      saveUndoSnapshot: () => {
+        const { pledges, needs, donors, donationHistory } = get();
+        set({
+          undoSnapshot: {
+            pledges: JSON.parse(JSON.stringify(pledges)),
+            needs: JSON.parse(JSON.stringify(needs)),
+            donors: JSON.parse(JSON.stringify(donors)),
+            donationHistory: JSON.parse(JSON.stringify(donationHistory)),
+          },
+        });
+      },
+
+      performUndo: () => {
+        const { undoSnapshot } = get();
+        if (!undoSnapshot) return;
+        set({
+          pledges: undoSnapshot.pledges,
+          needs: undoSnapshot.needs,
+          donors: undoSnapshot.donors,
+          donationHistory: undoSnapshot.donationHistory,
+          undoSnapshot: null,
+        });
+        get().showToast('Action undone successfully', 'info');
       },
 
       // ═══════════════════════════════════════════════
@@ -275,7 +309,7 @@ export const useStore = create(
           createdAt: new Date().toISOString(),
         };
         set(state => ({ needs: [newNeed, ...state.needs] }));
-        get().showToast(`Need posted: ${quantity}x ${itemName}`, 'success');
+        get().showToast(`✅ Need posted successfully: ${quantity}x ${itemName}`, 'success');
         return { success: true, need: newNeed };
       },
 
@@ -286,14 +320,16 @@ export const useStore = create(
       },
 
       closeNeed: (needId) => {
+        get().saveUndoSnapshot();
         set(state => ({
           needs: state.needs.map(n => n.id === needId ? { ...n, status: 'closed' } : n),
         }));
-        get().showToast('Need request closed', 'success');
+        get().showToast('Need request closed', 'success', { label: 'Undo', handler: 'undo' });
       },
 
       // Manual adjustment for walk-in donations
       adjustNeedQuantity: (needId, deliveredAmount) => {
+        get().saveUndoSnapshot();
         set(state => ({
           needs: state.needs.map(n => {
             if (n.id !== needId) return n;
@@ -306,7 +342,7 @@ export const useStore = create(
             };
           }),
         }));
-        get().showToast(`Manual adjustment: +${deliveredAmount} delivered`, 'success');
+        get().showToast(`Manual adjustment: +${deliveredAmount} delivered`, 'success', { label: 'Undo', handler: 'undo' });
       },
 
       // ═══════════════════════════════════════════════
@@ -371,6 +407,9 @@ export const useStore = create(
 
         const need = needs.find(n => n.id === pledge.needId);
 
+        // Save snapshot for undo BEFORE making changes
+        get().saveUndoSnapshot();
+
         if (verificationType === 'full') {
           // Full match
           const delivered = pledge.quantity;
@@ -396,7 +435,7 @@ export const useStore = create(
               verifiedBy: 'qr',
             }],
           }));
-          get().showToast(`Donation verified: ${delivered}x ${need?.itemName}`, 'success');
+          get().showToast(`✅ Donation verified: ${delivered}x ${need?.itemName}`, 'success', { label: 'Undo', handler: 'undo' });
           return { success: true };
         }
 
@@ -428,7 +467,7 @@ export const useStore = create(
               verifiedBy: 'manual',
             }],
           }));
-          get().showToast(`Partial verification: ${delivered}/${pledge.quantity} delivered. ${returned} returned to pool.`, 'warning');
+          get().showToast(`⚠ Partial verification: ${delivered}/${pledge.quantity} delivered. ${returned} returned to pool.`, 'warning', { label: 'Undo', handler: 'undo' });
           return { success: true };
         }
 
@@ -445,7 +484,7 @@ export const useStore = create(
             ),
           }));
           get().addStrike(pledge.donorId);
-          get().showToast('Donation rejected. Quantity returned to needs pool.', 'error');
+          get().showToast('❌ Donation rejected. Quantity returned to needs pool.', 'error', { label: 'Undo', handler: 'undo' });
           return { success: true };
         }
 
@@ -520,7 +559,7 @@ export const useStore = create(
           uniqueDonorIds.forEach(donorId => get().addStrike(donorId));
 
           if (expiredCount > 0) {
-            get().showToast(`${expiredCount} pledge(s) expired. Quantities returned to pool.`, 'warning');
+            get().showToast(`⏰ ${expiredCount} pledge(s) expired. Quantities returned to pool.`, 'warning');
           }
         }
       },

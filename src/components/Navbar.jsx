@@ -41,6 +41,7 @@ export const Navbar = () => {
     if (!currentUser) {
       return [
         { to: '/needs', label: 'Needs Board' },
+        { to: '/help', label: 'Help' },
       ];
     }
 
@@ -49,6 +50,7 @@ export const Navbar = () => {
         { to: '/coordinator', label: 'Coordinator Dashboard' },
         { to: '/verify', label: 'Verify Donation' },
         { to: '/needs', label: 'Needs Board' },
+        { to: '/help', label: 'Help' },
       ];
     }
 
@@ -56,6 +58,7 @@ export const Navbar = () => {
     return [
       { to: '/donor', label: 'My Dashboard' },
       { to: '/needs', label: 'Needs Board' },
+      { to: '/help', label: 'Help' },
     ];
   };
 

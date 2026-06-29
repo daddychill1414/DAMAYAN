@@ -12,7 +12,9 @@ import { DonorDashboard } from './pages/DonorDashboard';
 import { VerifyDonation } from './pages/VerifyDonation';
 import { GlobalToast } from './components/GlobalToast';
 import { PledgeModal } from './components/PledgeModal';
+import { HelpCenter } from './pages/HelpCenter';
 import { useStore } from './store';
+
 
 const ProtectedRoute = ({ children, allowedType }) => {
   const { currentUser } = useStore();
@@ -55,6 +57,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/needs" element={<NeedsBoard />} />
+        <Route path="/help" element={<HelpCenter />} />
         
         {/* Coordinator Routes */}
         <Route 

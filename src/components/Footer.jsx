@@ -12,6 +12,7 @@ export const Footer = () => {
           <h4 className="font-mono text-accent text-sm mb-6 uppercase tracking-widest">Navigation</h4>
           <ul className="space-y-4 font-outfit text-background/80">
             <li><Link to="/needs" className="hover:text-accent transition-colors">Live Needs Board</Link></li>
+            <li><Link to="/help" className="hover:text-accent transition-colors">Help Center</Link></li>
             <li><Link to="/login" className="hover:text-accent transition-colors">Sign In</Link></li>
             <li><Link to="/register" className="hover:text-accent transition-colors">Register</Link></li>
           </ul>

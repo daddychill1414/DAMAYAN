@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
 import { UrgencyBadge } from './UrgencyBadge';
-import { QrCode, Hash, Search, CheckCircle, AlertTriangle, XCircle, Package, User, Phone } from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
+import { LoadingSpinner } from './LoadingSpinner';
+import { HelperTooltip } from './HelperTooltip';
+import { QrCode, Hash, Search, CheckCircle, AlertTriangle, XCircle, Package, User, Phone, X } from 'lucide-react';
 
 export const VerificationPanel = () => {
-  const { findPledgeByCode, findPledgesByDonorSearch, verifyPledge, needs, getDonor } = useStore();
+  const { findPledgeByCode, findPledgesByDonorSearch, verifyPledge, needs, getDonor, isProcessing, setProcessing } = useStore();
   const [activeTab, setActiveTab] = useState('code'); // 'qr' | 'code' | 'fallback'
   const [codeInput, setCodeInput] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -14,6 +17,9 @@ export const VerificationPanel = () => {
   const [verifyResult, setVerifyResult] = useState(null);
   const [error, setError] = useState('');
 
+  // Confirmation Dialog State
+  const [confirmState, setConfirmState] = useState({ open: false, type: null, pledgeId: null });
+
   const tabs = [
     { id: 'qr', label: 'QR Scan', icon: QrCode },
     { id: 'code', label: 'Manual Code', icon: Hash },
@@ -22,29 +28,51 @@ export const VerificationPanel = () => {
 
   const handleCodeLookup = () => {
     const code = codeInput.trim().toUpperCase();
-    if (!code) { setError('Please enter a verification code'); return; }
+    if (!code) { setError('Please enter a verification code (e.g., DMY-XXXX)'); return; }
     const pledge = findPledgeByCode(code);
-    if (!pledge) { setError('No active pledge found with this code'); setFoundPledge(null); return; }
+    if (!pledge) { setError('No active pledge found with this code. Check for typos or if the pledge expired.'); setFoundPledge(null); return; }
     setFoundPledge(pledge);
     setError('');
   };
 
   const handleFallbackSearch = () => {
     const term = searchInput.trim();
-    if (!term) { setError('Please enter a phone number or name'); return; }
+    if (!term) { setError('Please enter a phone number or donor name to search.'); return; }
     const results = findPledgesByDonorSearch(term);
-    if (results.length === 0) { setError('No active pledges found'); setFoundPledges([]); return; }
+    if (results.length === 0) { setError('No active pledges found for that donor. They may have expired or not exist.'); setFoundPledges([]); return; }
     setFoundPledges(results);
     setError('');
   };
 
-  const handleVerify = (pledgeId, type) => {
-    const actualQty = type === 'partial' ? parseInt(partialQty) : null;
-    if (type === 'partial' && (!actualQty || actualQty <= 0)) {
-      setError('Please enter the actual delivered quantity');
-      return;
+  const handleVerifyClick = (pledgeId, type) => {
+    if (type === 'partial') {
+      const actualQty = parseInt(partialQty);
+      const maxQty = foundPledge?.quantity - 1 || 1;
+      if (!actualQty || actualQty <= 0) {
+        setError('Please enter a valid delivered quantity (greater than 0).');
+        return;
+      }
+      if (actualQty >= foundPledge?.quantity) {
+         setError('Partial quantity must be less than the total pledged. Use "Full Match" if everything was delivered.');
+         return;
+      }
     }
+    setError('');
+    setConfirmState({ open: true, type, pledgeId });
+  };
+
+  const executeVerify = async () => {
+    const { type, pledgeId } = confirmState;
+    const actualQty = type === 'partial' ? parseInt(partialQty) : null;
+    
+    setProcessing(true);
+    // Simulate network delay
+    await new Promise(r => setTimeout(r, 800));
+    
     const res = verifyPledge(pledgeId, type, actualQty);
+    setProcessing(false);
+    setConfirmState({ open: false, type: null, pledgeId: null });
+
     if (res.success) {
       setVerifyResult(type);
       setTimeout(() => {
@@ -55,6 +83,8 @@ export const VerificationPanel = () => {
         setSearchInput('');
         setPartialQty('');
       }, 3000);
+    } else {
+      setError(res.error || 'Verification failed.');
     }
   };
 
@@ -86,7 +116,7 @@ export const VerificationPanel = () => {
       <div className="mt-6 p-5 bg-white rounded-2xl border border-neutralGray/20 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-sans font-bold text-lg text-primary">Pledge Details</h4>
-          <UrgencyBadge urgency={need?.urgency || 'stable'} size="small" />
+          <UrgencyBadge urgency={need?.urgency || 'stable'} size="small" showUrgentTag />
         </div>
 
         <div className="space-y-3 mb-6">
@@ -98,9 +128,9 @@ export const VerificationPanel = () => {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-background rounded-xl">
+            <div className="p-3 bg-background rounded-xl border border-accent/20">
               <p className="font-outfit text-xs text-neutralGray">Pledged Qty</p>
-              <p className="font-mono text-xl font-bold text-primary">{pledge.quantity}</p>
+              <p className="font-mono text-2xl font-bold text-primary">{pledge.quantity}</p>
             </div>
             <div className="p-3 bg-background rounded-xl">
               <p className="font-outfit text-xs text-neutralGray">Code</p>
@@ -130,10 +160,10 @@ export const VerificationPanel = () => {
         {/* Verification Actions */}
         <div className="space-y-3">
           <button
-            onClick={() => handleVerify(pledge.id, 'full')}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-urgency-stable text-white rounded-xl font-outfit font-bold text-sm hover:opacity-90 transition-colors"
+            onClick={() => handleVerifyClick(pledge.id, 'full')}
+            className="w-full flex items-center justify-center gap-2 py-3.5 bg-urgency-stable text-white rounded-xl font-outfit font-bold text-sm hover:bg-urgency-stable/90 transition-all shadow-md shadow-urgency-stable/20"
           >
-            <CheckCircle size={16} /> Full Match — {pledge.quantity} delivered
+            <CheckCircle size={18} /> Full Match — {pledge.quantity} delivered
           </button>
 
           <div className="flex items-center gap-2">
@@ -142,27 +172,62 @@ export const VerificationPanel = () => {
               min="1"
               max={pledge.quantity - 1}
               value={partialQty}
-              onChange={(e) => setPartialQty(e.target.value)}
+              onChange={(e) => { setPartialQty(e.target.value); setError(''); }}
               placeholder="Actual qty"
               className="flex-1 bg-background border border-neutralGray/20 rounded-xl px-3 py-3 font-mono text-sm outline-none focus:border-urgency-warning"
             />
             <button
-              onClick={() => handleVerify(pledge.id, 'partial')}
-              className="flex items-center justify-center gap-2 px-5 py-3 bg-urgency-warning text-white rounded-xl font-outfit font-bold text-sm hover:opacity-90 transition-colors whitespace-nowrap"
+              onClick={() => handleVerifyClick(pledge.id, 'partial')}
+              className="flex items-center justify-center gap-2 px-5 py-3 bg-urgency-warning text-white rounded-xl font-outfit font-bold text-sm hover:bg-urgency-warning/90 transition-all whitespace-nowrap shadow-sm"
             >
-              <AlertTriangle size={14} /> Partial
+              <AlertTriangle size={16} /> Partial
             </button>
+            <HelperTooltip text="Use Partial if the donor delivered fewer items than pledged. The remaining quantity will be returned to the needs pool." position="top" />
           </div>
 
-          <button
-            onClick={() => handleVerify(pledge.id, 'reject')}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-urgency-critical/10 text-urgency-critical rounded-xl font-outfit font-bold text-sm hover:bg-urgency-critical/20 transition-colors border border-urgency-critical/20"
-          >
-            <XCircle size={16} /> Reject — Return to Pool
-          </button>
+          <div className="pt-2">
+            <button
+              onClick={() => handleVerifyClick(pledge.id, 'reject')}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-background text-urgency-critical rounded-xl font-outfit font-bold text-sm hover:bg-urgency-critical/5 transition-colors border border-urgency-critical/30"
+            >
+              <XCircle size={16} /> Reject Donation
+            </button>
+          </div>
         </div>
       </div>
     );
+  };
+
+  const getConfirmProps = () => {
+    const p = foundPledge || foundPledges.find(p => p.id === confirmState.pledgeId);
+    if (confirmState.type === 'full') {
+      return {
+        title: 'Verify Full Delivery?',
+        message: `Confirm that the donor delivered exactly ${p?.quantity} items. This will fulfill the pledge.`,
+        confirmLabel: 'Yes, Fully Verified',
+        variant: 'info',
+        icon: CheckCircle
+      };
+    }
+    if (confirmState.type === 'partial') {
+      return {
+        title: 'Verify Partial Delivery?',
+        message: `Confirm that only ${partialQty} items were delivered. The remaining ${p?.quantity - parseInt(partialQty)} will be returned to the needs pool.`,
+        confirmLabel: 'Confirm Partial',
+        variant: 'warning',
+        icon: AlertTriangle
+      };
+    }
+    if (confirmState.type === 'reject') {
+      return {
+        title: 'Reject Donation?',
+        message: `Are you sure you want to reject this donation? The full quantity will be returned to the pool and the donor will receive a strike.`,
+        confirmLabel: 'Yes, Reject',
+        variant: 'danger',
+        icon: XCircle
+      };
+    }
+    return {};
   };
 
   return (
@@ -193,14 +258,20 @@ export const VerificationPanel = () => {
             <p className="font-mono text-[9px] text-neutralGray/80">(Simulated)</p>
           </div>
           <p className="font-outfit text-sm text-neutralGray mb-4">Point camera at donor's QR code</p>
-          <p className="font-outfit text-xs text-neutralGray">Or use Manual Code / Search tabs instead</p>
+          <div className="flex items-center justify-center gap-2">
+             <p className="font-outfit text-xs text-neutralGray">Or use Manual Code / Search tabs instead</p>
+             <HelperTooltip text="In a real app, this would activate your device camera to scan the donor's QR code." />
+          </div>
         </div>
       )}
 
       {/* Manual Code Tab */}
       {activeTab === 'code' && (
         <div>
-          <label className="block font-outfit text-sm font-semibold text-primary mb-2">Enter Verification Code</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block font-outfit text-sm font-semibold text-primary">Enter Verification Code</label>
+            <HelperTooltip text="The donor can find this 8-character code (e.g., DMY-1234) on their active pledge screen." />
+          </div>
           <div className="flex gap-3">
             <input
               type="text"
@@ -218,7 +289,10 @@ export const VerificationPanel = () => {
             </button>
           </div>
           {error && (
-            <p className="font-outfit text-xs text-urgency-critical mt-2">{error}</p>
+            <div className="mt-3 p-3 bg-urgency-critical/10 border border-urgency-critical/20 rounded-xl flex items-start gap-2">
+              <AlertTriangle size={16} className="text-urgency-critical shrink-0 mt-0.5" />
+              <p className="font-outfit text-xs text-urgency-critical leading-relaxed">{error}</p>
+            </div>
           )}
           {foundPledge && renderPledgeDetails(foundPledge)}
         </div>
@@ -227,7 +301,10 @@ export const VerificationPanel = () => {
       {/* Fallback Search Tab */}
       {activeTab === 'fallback' && (
         <div>
-          <label className="block font-outfit text-sm font-semibold text-primary mb-2">Search by Phone or Name</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block font-outfit text-sm font-semibold text-primary">Search by Phone or Name</label>
+            <HelperTooltip text="If the donor lost their code, you can search for their active pledges using their registered name or phone number." />
+          </div>
           <div className="flex gap-3">
             <input
               type="text"
@@ -244,7 +321,10 @@ export const VerificationPanel = () => {
             </button>
           </div>
           {error && (
-            <p className="font-outfit text-xs text-urgency-critical mt-2">{error}</p>
+            <div className="mt-3 p-3 bg-urgency-critical/10 border border-urgency-critical/20 rounded-xl flex items-start gap-2">
+              <AlertTriangle size={16} className="text-urgency-critical shrink-0 mt-0.5" />
+              <p className="font-outfit text-xs text-urgency-critical leading-relaxed">{error}</p>
+            </div>
           )}
           {foundPledges.length > 0 && (
             <div className="mt-6 space-y-4">
@@ -258,6 +338,25 @@ export const VerificationPanel = () => {
           )}
         </div>
       )}
+
+      {/* Clear Results Button */}
+      {(foundPledge || foundPledges.length > 0) && !verifyResult && (
+        <button 
+          onClick={() => { setFoundPledge(null); setFoundPledges([]); setCodeInput(''); setSearchInput(''); }}
+          className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-background border-2 border-neutralGray/20 text-neutralGray rounded-xl font-outfit font-bold text-sm hover:border-neutralGray/40 hover:text-primary transition-all"
+        >
+          <X size={16} /> Cancel & Clear Search
+        </button>
+      )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmState.open}
+        onConfirm={executeVerify}
+        onCancel={() => setConfirmState({ open: false, type: null, pledgeId: null })}
+        isLoading={isProcessing}
+        {...getConfirmProps()}
+      />
     </div>
   );
 };
